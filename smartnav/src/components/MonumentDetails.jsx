@@ -4,7 +4,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://smartnavigationrepo.onrender.com/api";
 
 const MonumentDetail = ({ id, onBack, onNavigate, onStartNavigation }) => {
   const [monument, setMonument] = useState(null);
