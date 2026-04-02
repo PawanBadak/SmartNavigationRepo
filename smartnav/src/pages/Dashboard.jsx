@@ -1,55 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
-
-const translations = {
-  en: {
-    explore: "Explore the best places around you",
-    audioGuide: "Audio Guide",
-    viewMap: "View Map",
-    askAI: "Ask AI",
-    popularPlaces: "Popular Places ⭐",
-    allPlaces: "All Places",
-    loading: "Loading amazing places near you...",
-    noPlaces: "No places found for this location",
-    nearestCave: "NEAREST CAVE",
-    showOnMap: "Show on Map",
-    mainEntrance: "Main entrance",
-    currentLocation: "Current Location",
-    distance: "Distance"
-  },
-  hi: {
-    explore: "अपने आसपास के बेहतरीन स्थानों का अन्वेषण करें",
-    audioGuide: "ऑडियो गाइड",
-    viewMap: "मानचित्र देखें",
-    askAI: "एआई से पूछें",
-    popularPlaces: "लोकप्रिय स्थान ⭐",
-    allPlaces: "सभी स्थान",
-    loading: "आपके पास के अद्भुत स्थान लोड हो रहे हैं...",
-    noPlaces: "इस स्थान के लिए कोई स्थान नहीं मिला",
-    nearestCave: "निकटतम गुफा",
-    showOnMap: "मानचित्र पर दिखाएँ",
-    mainEntrance: "मुख्य प्रवेश",
-    currentLocation: "वर्तमान स्थान",
-    distance: "दूरी"
-  },
-  mr: {
-    explore: "आपल्या आजूबाजूच्या सर्वोत्तम ठिकाणांचा शोध घ्या",
-    audioGuide: "ऑडिओ मार्गदर्शक",
-    viewMap: "नकाशा पहा",
-    askAI: "एआयला विचारा",
-    popularPlaces: "लोकप्रिय ठिकाणे ⭐",
-    allPlaces: "सर्व ठिकाणे",
-    loading: "आपल्या जवळील अद्भुत ठिकाणे लोड होत आहेत...",
-    noPlaces: "या ठिकाणासाठी कोणतीही ठिकाणे सापडली नाहीत",
-    nearestCave: "सर्वात जवळची गुहा",
-    showOnMap: "नकाशावर दाखवा",
-    mainEntrance: "मुख्य प्रवेशद्वार",
-    currentLocation: "सध्याचे स्थान",
-    distance: "अंतर"
-  }
-};
+const API_URL = "https://smartnavigationrepo.onrender.com/api";
 
 const Dashboard = ({ selectedPlace, onSelectMonument, onSwitchTab, language = "en" }) => {
   const [monuments, setMonuments] = useState([]);

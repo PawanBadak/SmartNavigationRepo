@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://smartnavigationrepo.onrender.com/api";
 
 const HomePage = ({ onSelectPlace }) => {
   const [mainPlaces, setMainPlaces] = useState([]);
@@ -56,7 +56,7 @@ const HomePage = ({ onSelectPlace }) => {
         getLocationName(userLat, userLng);
       }
     );
-  }, []);
+  }, [userLat, userLng]);
 
   // Fetch main places
   useEffect(() => {

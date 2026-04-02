@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import maplibregl from "maplibre-gl";
 import axios from "axios";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://smartnavigationrepo.onrender.com/api";
 
 // Cave marker SVG
 const createMarkerElement = (category, isSelected = false) => {
@@ -154,7 +154,7 @@ const LiveMap = ({ onSelectMonument, selectedMonumentId, navigationTarget, langu
 
 
   // Ajanta Caves center coordinates
-  const AJANTA_CENTER = [75.7031, 20.5519];
+  const AJANTA_CENTER = useMemo(() => [75.7031, 20.5519], []);
 
   // Fetch monuments
   useEffect(() => {
@@ -215,7 +215,7 @@ setUserLocation({
         map.current = null;
       }
     };
-  }, []);
+  }, [AJANTA_CENTER]);
 
   // Calculate distance between two points
   const getDistance = useCallback((point1, point2) => {
@@ -242,6 +242,63 @@ const getTravelTime = (distance) => {
   if (minutes < 1) return "<1 min";
   return `${minutes} min`;
 };
+
+const drawRoute = useCallback((destination) => {
+  if (!map.current || !userLocation) return;
+
+  if (!map.current.isStyleLoaded()) {
+    console.log("⏳ Map not ready yet...");
+    return;
+  }
+
+  setIsNavigating(true);
+
+  const routeData = {
+    type: "Feature",
+    geometry: {
+      type: "LineString",
+      coordinates: [
+        [userLocation.lng, userLocation.lat],
+        [destination.lng, destination.lat]
+      ]
+    }
+  };
+
+  // Remove old route safely
+  if (map.current.getLayer("route-line")) {
+    map.current.removeLayer("route-line");
+  }
+  if (map.current.getSource("route")) {
+    map.current.removeSource("route");
+  }
+
+  // Add new route
+  map.current.addSource("route", {
+    type: "geojson",
+    data: routeData
+  });
+
+  map.current.addLayer({
+    id: "route-line",
+    type: "line",
+    source: "route",
+    paint: {
+      "line-color": "#22c55e",
+      "line-width": 5
+    }
+  });
+
+  // 🔥 BEST FIT FIX
+  const bounds = new maplibregl.LngLatBounds();
+  bounds.extend([userLocation.lng, userLocation.lat]);
+  bounds.extend([destination.lng, destination.lat]);
+
+  map.current.fitBounds(bounds, {
+    padding: 120,
+    maxZoom: 16,   // prevents over zoom
+    duration: 1000
+  });
+}, [userLocation]);
 
   // Find nearest cave
   useEffect(() => {
@@ -291,7 +348,7 @@ if (!navigationTarget || !mapReady || !userLocation || landmarks.length === 0) r
     duration: 1000
   });
 
-}, [navigationTarget, mapReady, userLocation, landmarks]);
+}, [navigationTarget, mapReady, userLocation, landmarks, drawRoute]);
 
 
   // Add markers to map
@@ -352,77 +409,7 @@ if (!navigationTarget || !mapReady || !userLocation || landmarks.length === 0) r
       duration: 800
     });
   };
-const drawRoute = (destination) => {
-  if (!map.current || !userLocation) return;
 
-  if (!map.current.isStyleLoaded()) {
-    console.log("⏳ Map not ready yet...");
-    return;
-  }
-
-  setIsNavigating(true);
-
-  const routeData = {
-    type: "Feature",
-    geometry: {
-      type: "LineString",
-      coordinates: [
-        [userLocation.lng, userLocation.lat],
-        [destination.lng, destination.lat]
-      ]
-    }
-  };
-
-  // Remove old route safely
-  if (map.current.getLayer("route-line")) {
-    map.current.removeLayer("route-line");
-  }
-  if (map.current.getSource("route")) {
-    map.current.removeSource("route");
-  }
-
-  // Add new route
-  map.current.addSource("route", {
-    type: "geojson",
-    data: routeData
-  });
-
-  map.current.addLayer({
-    id: "route-line",
-    type: "line",
-    source: "route",
-    paint: {
-      "line-color": "#22c55e",
-      "line-width": 5
-    }
-  });
-
-  // 🔥 BEST FIT FIX
-  const bounds = new maplibregl.LngLatBounds();
-  bounds.extend([userLocation.lng, userLocation.lat]);
-  bounds.extend([destination.lng, destination.lat]);
-
-  map.current.fitBounds(bounds, {
-    padding: 120,
-    maxZoom: 16,   // prevents over zoom
-    duration: 1000
-  });
-};
-
-  // Navigate to monument
-  const handleStartNavigation = (place) => {
-  if (!userLocation || !place?.coordinates) {
-    alert("Location not available");
-    return;
-  }
-
-  const origin = `${userLocation.lat},${userLocation.lng}`;
-  const destination = `${place.coordinates.lat},${place.coordinates.lng}`;
-
-  const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
-
-  window.open(url, "_blank");
-};
   // Focus on monument from sidebar
   const handleSidebarClick = (place) => {
     setSelectedPlace(place);

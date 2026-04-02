@@ -49,11 +49,6 @@ const [userLocation] = useState({
   if (id) fetchNearby();
 }, [id]);
 
-const handleStartNavigation = () => {
-  if (!monument) return;
-
-  onStartNavigation(monument); // 🔥 send FULL object, not just ID
-};
 // 🔥 AUDIO GUIDE HANDLER (FINAL CLEAN VERSION)
 const handlePlayAudio = () => {
   if (!monument?.audioUrl) {
@@ -313,6 +308,7 @@ const handlePlayAudio = () => {
 
             {/* 🔥 MINI MAP */}
             <iframe
+              title={`Monument location: ${monument.name}`}
               width="100%"
               height="200"
               className="rounded-xl"
