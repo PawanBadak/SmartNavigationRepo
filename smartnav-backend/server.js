@@ -192,6 +192,110 @@ app.get('/caves', async (req, res) => {
   }
 });
 
+// GET ALL MAIN PLACES
+app.get('/api/mainplaces', async (req, res) => {
+  try {
+    const mainPlaces = await MainPlace.find().sort({ name: 1 });
+    res.json(mainPlaces);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET SINGLE MAIN PLACE
+app.get('/api/mainplaces/:id', async (req, res) => {
+  try {
+    const mainPlace = await MainPlace.findOne({ mainPlaceId: req.params.id });
+    if (!mainPlace) {
+      return res.status(404).json({ message: "Main place not found" });
+    }
+    res.json(mainPlace);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// CREATE MAIN PLACE
+app.post('/api/mainplaces', async (req, res) => {
+  try {
+    const newMainPlace = new MainPlace(req.body);
+    await newMainPlace.save();
+    res.status(201).json(newMainPlace);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// UPDATE MAIN PLACE
+app.put('/api/mainplaces/:id', async (req, res) => {
+  try {
+    const updatedMainPlace = await MainPlace.findOneAndUpdate(
+      { mainPlaceId: req.params.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedMainPlace) {
+      return res.status(404).json({ message: "Main place not found" });
+    }
+    res.json(updatedMainPlace);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE MAIN PLACE
+app.delete('/api/mainplaces/:id', async (req, res) => {
+  try {
+    const deletedMainPlace = await MainPlace.findOneAndDelete({ mainPlaceId: req.params.id });
+    if (!deletedMainPlace) {
+      return res.status(404).json({ message: "Main place not found" });
+    }
+    res.json({ message: "Main place deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET SUBPLACES FOR A MAIN PLACE
+app.get('/api/mainplaces/:id/monuments', async (req, res) => {
+  try {
+    const monuments = await Monument.find({ parentPlaceId: req.params.id }).sort({ name: 1 });
+    res.json(monuments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// UPDATE MONUMENT
+app.put('/api/monuments/:id', async (req, res) => {
+  try {
+    const updatedMonument = await Monument.findOneAndUpdate(
+      { monumentId: req.params.id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedMonument) {
+      return res.status(404).json({ message: "Monument not found" });
+    }
+    res.json(updatedMonument);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE MONUMENT
+app.delete('/api/monuments/:id', async (req, res) => {
+  try {
+    const deletedMonument = await Monument.findOneAndDelete({ monumentId: req.params.id });
+    if (!deletedMonument) {
+      return res.status(404).json({ message: "Monument not found" });
+    }
+    res.json({ message: "Monument deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

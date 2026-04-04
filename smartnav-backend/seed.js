@@ -20,7 +20,8 @@ const ajantaData = [
     ],
     category: "Cave",
     isPopular: true,
-    caveNumber: 1
+    caveNumber: 1,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-cave-2",
@@ -33,7 +34,8 @@ const ajantaData = [
     imageUrl: "/images/cave2.jpg",
     category: "Cave",
     isPopular: true,
-    caveNumber: 2
+    caveNumber: 2,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-cave-4",
@@ -45,7 +47,8 @@ const ajantaData = [
     audioUrl: "/audio/cave4.mp3",
     imageUrl: "/images/cave4.png",
     category: "Cave",
-    caveNumber: 4
+    caveNumber: 4,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-cave-9",
@@ -58,7 +61,8 @@ const ajantaData = [
     imageUrl: "/images/cave9.png",
     category: "Cave",
     isPopular: true,
-    caveNumber: 9
+    caveNumber: 9,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-cave-10",
@@ -71,7 +75,8 @@ const ajantaData = [
     imageUrl: "/images/cave10.png",
     category: "Cave",
     isPopular: true,
-    caveNumber: 10
+    caveNumber: 10,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-cave-16",
@@ -84,7 +89,8 @@ const ajantaData = [
     imageUrl: "/images/cave16.png",
     category: "Cave",
     isPopular: true,
-    caveNumber: 16
+    caveNumber: 16,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-cave-17",
@@ -97,7 +103,8 @@ const ajantaData = [
     imageUrl: "/images/cave17.png",
     category: "Cave",
     isPopular: true,
-    caveNumber: 17
+    caveNumber: 17,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-cave-19",
@@ -110,7 +117,8 @@ const ajantaData = [
     imageUrl: "/images/cave19.png",
     category: "Cave",
     isPopular: true,
-    caveNumber: 19
+    caveNumber: 19,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-cave-26",
@@ -123,7 +131,8 @@ const ajantaData = [
     imageUrl: "/images/cave26.png",
     category: "Cave",
     isPopular: true,
-    caveNumber: 26
+    caveNumber: 26,
+    parentPlaceId: "ajanta-caves"
   },
 
   {
@@ -134,7 +143,8 @@ const ajantaData = [
     imageUrl: "/images/ajanthaview.png",
     category: "Viewpoint",
     isPopular: true,
-    caveNumber: 99
+    caveNumber: 99,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-mtdc-restaurant",
@@ -143,7 +153,8 @@ const ajantaData = [
     coordinates: { lat: 20.5518, lng: 75.7060 },
     imageUrl: "/images/Restaurant.png",
     category: "Restaurant",
-    caveNumber: 100
+    caveNumber: 100,
+    parentPlaceId: "ajanta-caves"
   },
   {
     monumentId: "ajanta-main-entry",
@@ -152,7 +163,8 @@ const ajantaData = [
     coordinates: { lat: 20.5510, lng: 75.7065 },
     imageUrl: "/images/Entrance.png",
     category: "Entry",
-    caveNumber: 0
+    caveNumber: 0,
+    parentPlaceId: "ajanta-caves"
   }
 ];
 

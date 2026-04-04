@@ -1,4 +1,5 @@
 import AIChat from './components/AIChat';
+import AdminDashboard from './components/AdminDashboard';
 import React, { useState, useEffect } from 'react';
 import LiveMap from './pages/LiveMap';
 import Dashboard from './pages/Dashboard';
@@ -40,7 +41,8 @@ const App = () => {
     { name: "Explore", icon: "🏛️" },
     { name: "QR Scanner", icon: "📸" },
     { name: "Saved", icon: "🔖" },
-    { name: "Settings", icon: "⚙️" }
+    { name: "Settings", icon: "⚙️" },
+    { name: "Admin", icon: "🛠️" }
   ];
 
   const handleSelectMonument = (id) => {
@@ -87,7 +89,7 @@ onStartNavigation={(monument) => {
           setActiveTab("Explore");
         }} />;
       case "Explore":
-        return <Dashboard selectedPlace={selectedPlace} onSelectMonument={handleSelectMonument} onSwitchTab={setActiveTab} language={language} />;
+        return <Dashboard selectedMainPlace={selectedPlace} onSelectMonument={handleSelectMonument} onSwitchTab={setActiveTab} language={language} />;
       case "Live Map":
         return (
           <LiveMap
@@ -95,13 +97,15 @@ onStartNavigation={(monument) => {
             selectedMonumentId={selectedMonumentId}
             navigationTarget={navigationTarget}
             language={language}
+            selectedMainPlace={selectedPlace}
           />
         );
       case "QR Scanner":
         return <ScannerPage onScanMatch={handleSelectMonument} />;
-
-        case "AI Chat":
-      return <AIChat currentMonumentId={selectedMonumentId} />;
+      case "Admin":
+        return <AdminDashboard />;
+      case "AI Chat":
+        return <AIChat currentMonumentId={selectedMonumentId} />;
 
       default:
         return (

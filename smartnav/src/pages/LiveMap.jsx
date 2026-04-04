@@ -3,7 +3,7 @@ import maplibregl from "maplibre-gl";
 import axios from "axios";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-const API_URL = "https://smartnavigationrepo.onrender.com/api";
+const API_URL = "http://localhost:5000/api";
 
 // Cave marker SVG
 const createMarkerElement = (category, isSelected = false) => {
@@ -108,7 +108,7 @@ const translations = {
   }
 };
 
-const LiveMap = ({ onSelectMonument, selectedMonumentId, navigationTarget, language = "en" }) => {
+const LiveMap = ({ onSelectMonument, selectedMonumentId, navigationTarget, language = "en", selectedMainPlace }) => {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const markersRef = useRef({});
@@ -160,7 +160,11 @@ const LiveMap = ({ onSelectMonument, selectedMonumentId, navigationTarget, langu
   useEffect(() => {
     const fetchMonuments = async () => {
       try {
-        const res = await axios.get(`${API_URL}/monuments`);
+        let url = `${API_URL}/monuments`;
+        if (selectedMainPlace && selectedMainPlace.mainPlaceId) {
+          url = `${API_URL}/mainplaces/${selectedMainPlace.mainPlaceId}/monuments`;
+        }
+        const res = await axios.get(url);
         console.log("API Response:", res.data); // Add this to debug
         setLandmarks(res.data);
         setFilteredLandmarks(res.data);
@@ -171,7 +175,7 @@ const LiveMap = ({ onSelectMonument, selectedMonumentId, navigationTarget, langu
       }
     };
     fetchMonuments();
-  }, []);
+  }, [selectedMainPlace]);
 
   // Initialize map
   useEffect(() => {

@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 
-const API_URL = "https://smartnavigationrepo.onrender.com/api";
+const API_URL = "http://localhost:5000/api";
 
-const Dashboard = ({ selectedPlace, onSelectMonument, onSwitchTab, language = "en" }) => {
+const Dashboard = ({ selectedMainPlace, onSelectMonument, onSwitchTab, language = "en" }) => {
   const [monuments, setMonuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mainAudio, setMainAudio] = useState(null);
@@ -12,33 +12,33 @@ const Dashboard = ({ selectedPlace, onSelectMonument, onSwitchTab, language = "e
 
   const translations = {
     en: {
-      explore: "Explore the best places around you",
+      explore: "Explore the best places",
       audioGuide: "Audio Guide",
       viewMap: "View Map",
       askAI: "Ask AI",
-      popularPlaces: "Popular Places ⭐",
+      popularPlaces: "Places in",
       allPlaces: "All Places",
-      loading: "Loading amazing places near you...",
+      loading: "Loading amazing places...",
       noPlaces: "No places found for this location",
     },
     hi: {
-      explore: "अपने आसपास के बेहतरीन स्थानों का अन्वेषण करें",
+      explore: "बेहतरीन स्थानों का अन्वेषण करें",
       audioGuide: "ऑडियो गाइड",
       viewMap: "मानचित्र देखें",
       askAI: "एआई से पूछें",
-      popularPlaces: "लोकप्रिय स्थान ⭐",
+      popularPlaces: "स्थान में",
       allPlaces: "सभी स्थान",
-      loading: "आपके पास के अद्भुत स्थान लोड हो रहे हैं...",
+      loading: "अद्भुत स्थान लोड हो रहे हैं...",
       noPlaces: "इस स्थान के लिए कोई स्थान नहीं मिला",
     },
     mr: {
-      explore: "आपल्या आजूबाजूच्या सर्वोत्तम ठिकाणांचा शोध घ्या",
+      explore: "सर्वोत्तम ठिकाणांचा शोध घ्या",
       audioGuide: "ऑडिओ मार्गदर्शक",
       viewMap: "नकाशा पहा",
       askAI: "एआयला विचारा",
-      popularPlaces: "लोकप्रिय ठिकाणे ⭐",
+      popularPlaces: "ठिकाणात",
       allPlaces: "सर्व ठिकाणे",
-      loading: "आपल्या जवळील अद्भुत ठिकाणे लोड होत आहेत...",
+      loading: "अद्भुत ठिकाणे लोड होत आहेत...",
       noPlaces: "या ठिकाणासाठी कोणतीही ठिकाणे सापडली नाहीत",
     }
   };
@@ -47,7 +47,7 @@ const Dashboard = ({ selectedPlace, onSelectMonument, onSwitchTab, language = "e
     const fetchMonuments = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`${API_URL}/monuments?location=${selectedPlace.name}`);
+        const res = await axios.get(`${API_URL}/mainplaces/${selectedMainPlace.mainPlaceId}/monuments`);
         setMonuments(res.data);
       } catch (err) {
         console.error("Error fetching monuments:", err);
@@ -59,18 +59,18 @@ const Dashboard = ({ selectedPlace, onSelectMonument, onSwitchTab, language = "e
 
     const fetchMainAudio = async () => {
       try {
-        const res = await axios.get(`${API_URL}/audio/main?location=${selectedPlace.name}`);
+        const res = await axios.get(`${API_URL}/audio/main?location=${selectedMainPlace.name}`);
         setMainAudio(res.data.url);
       } catch (err) {
         console.error("Error fetching main audio:", err);
       }
     };
 
-    if (selectedPlace) {
+    if (selectedMainPlace) {
       fetchMonuments();
       fetchMainAudio();
     }
-  }, [selectedPlace]);
+  }, [selectedMainPlace]);
 
   const popularPlaces = monuments.filter(m => m.isPopular).slice(0, 3);
 
@@ -109,6 +109,24 @@ const Dashboard = ({ selectedPlace, onSelectMonument, onSwitchTab, language = "e
     );
   }
 
+  if (!selectedMainPlace) {
+    return (
+      <div className="h-full flex items-center justify-center bg-[#050810] text-white">
+        <div className="text-center">
+          <span className="text-6xl mb-6 block">🏛️</span>
+          <h2 className="text-2xl font-bold mb-4">Select a Place to Explore</h2>
+          <p className="text-slate-400 mb-6">Please go to the Home page and select a main place to explore its monuments.</p>
+          <button
+            onClick={() => onSwitchTab("Home")}
+            className="bg-lime-400 text-black px-6 py-3 rounded-xl font-bold hover:bg-lime-300 transition-colors"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full overflow-y-auto bg-[#050810] text-white custom-scrollbar">
       <style>
@@ -129,7 +147,7 @@ const Dashboard = ({ selectedPlace, onSelectMonument, onSwitchTab, language = "e
           <div className="flex items-center gap-3">
             <span className="text-3xl">🏛️</span>
             <div>
-              <h1 className="text-3xl font-black text-white">{selectedPlace.name}</h1>
+              <h1 className="text-3xl font-black text-white">Explore {selectedMainPlace.name}</h1>
               <p className="text-slate-400 text-lg">{translations[language].explore}</p>
             </div>
           </div>
@@ -168,7 +186,7 @@ const Dashboard = ({ selectedPlace, onSelectMonument, onSwitchTab, language = "e
       {/* Popular Places Section */}
       {popularPlaces.length > 0 && (
         <div className="px-8 pb-8">
-          <h2 className="text-2xl font-bold text-white mb-6">{translations[language].popularPlaces}</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">{translations[language].popularPlaces} {selectedMainPlace.name}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {popularPlaces.map((place) => (
               <div

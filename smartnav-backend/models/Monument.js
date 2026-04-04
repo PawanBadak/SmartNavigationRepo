@@ -18,7 +18,8 @@ const monumentSchema = new mongoose.Schema({
   entryFee: String,
   highlights: [String],
   isPopular: { type: Boolean, default: false },
-  caveNumber: Number
+  caveNumber: Number,
+  parentPlaceId: { type: String, required: true } // 👈 this links sub-place to MainPlace
 });
 
 module.exports = mongoose.models.Monument || mongoose.model('Monument', monumentSchema);

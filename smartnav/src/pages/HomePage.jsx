@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_URL = "https://smartnavigationrepo.onrender.com/api";
+const API_URL = "http://localhost:5000/api";
 
 const HomePage = ({ onSelectPlace }) => {
   const [mainPlaces, setMainPlaces] = useState([]);
@@ -63,22 +63,20 @@ const HomePage = ({ onSelectPlace }) => {
     const fetchPlaces = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(
-          `${API_URL}/mainplaces/nearby?lat=${userLat}&lng=${userLng}`
-        );
-     const data = res.data.map((place) => {
-  const lat = place.coordinates?.lat;
-  const lng = place.coordinates?.lng;
+        const res = await axios.get(`${API_URL}/mainplaces`);
+        const data = res.data.map((place) => {
+          const lat = place.coordinates?.lat;
+          const lng = place.coordinates?.lng;
 
-  return {
-    ...place,
-    distance: lat && lng
-      ? calculateDistance(userLat, userLng, lat, lng)
-      : "0.0",
-  };
-});
+          return {
+            ...place,
+            distance: lat && lng
+              ? calculateDistance(userLat, userLng, lat, lng)
+              : "0.0",
+          };
+        });
 
-setMainPlaces(data);
+        setMainPlaces(data);
       } catch (err) {
         console.error("Error fetching main places:", err);
         setMainPlaces([]);
