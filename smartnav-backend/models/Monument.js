@@ -6,6 +6,17 @@ const monumentSchema = new mongoose.Schema({
   shortDescription: String,
   description: String,
   history: String,
+  location: {
+    type: {
+      type: String,
+      enum: ["Point"],
+      default: "Point"
+    },
+    coordinates: {
+      type: [Number],
+      default: undefined
+    }
+  },
   coordinates: {
     lat: { type: Number, required: true },
     lng: { type: Number, required: true }
@@ -24,6 +35,18 @@ const monumentSchema = new mongoose.Schema({
   isPopular: { type: Boolean, default: false },
   caveNumber: Number,
   parentPlaceId: { type: String, required: true } // 👈 this links sub-place to MainPlace
+});
+
+monumentSchema.index({ location: "2dsphere" });
+
+monumentSchema.pre("validate", function ensureGeoPoint(next) {
+  if (this.coordinates?.lat != null && this.coordinates?.lng != null) {
+    this.location = {
+      type: "Point",
+      coordinates: [this.coordinates.lng, this.coordinates.lat]
+    };
+  }
+  next();
 });
 
 module.exports = mongoose.models.Monument || mongoose.model('Monument', monumentSchema);

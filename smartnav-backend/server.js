@@ -1,19 +1,39 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const aiRoutes = require('./routes/aiRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+const travelRoutes = require('./routes/travelRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const authMiddleware = require('./middleware/authMiddleware');
 const Monument = require('./models/Monument');
 const MainPlace = require('./models/MainPlace');
+const TouristProfile = require('./models/TouristProfile');
 
 console.log("Server starting...");
+
+if (!process.env.MONGO_URI) {
+  console.warn('⚠️ MONGO_URI is missing. Check smartnav-backend/.env');
+}
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/ai', aiRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/travel', travelRoutes);
+app.use('/api/profile', profileRoutes);
+
+app.get('/travel-assistant', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chatbot.html'));
+});
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
@@ -171,8 +191,8 @@ app.get('/api/monuments/:id', async (req, res) => {
   }
 });
 
-// CREATE
-app.post('/api/monuments', async (req, res) => {
+// CREATE (admin only)
+app.post('/api/monuments', authMiddleware, async (req, res) => {
   try {
     const newMonument = new Monument(req.body);
     await newMonument.save();
@@ -237,8 +257,8 @@ app.get('/api/mainplaces/:id', async (req, res) => {
   }
 });
 
-// CREATE MAIN PLACE
-app.post('/api/mainplaces', async (req, res) => {
+// CREATE MAIN PLACE (admin only)
+app.post('/api/mainplaces', authMiddleware, async (req, res) => {
   try {
     const newMainPlace = new MainPlace(req.body);
     await newMainPlace.save();
@@ -248,8 +268,8 @@ app.post('/api/mainplaces', async (req, res) => {
   }
 });
 
-// UPDATE MAIN PLACE
-app.put('/api/mainplaces/:id', async (req, res) => {
+// UPDATE MAIN PLACE (admin only)
+app.put('/api/mainplaces/:id', authMiddleware, async (req, res) => {
   try {
     const updatedMainPlace = await MainPlace.findOneAndUpdate(
       { mainPlaceId: req.params.id },
@@ -265,8 +285,8 @@ app.put('/api/mainplaces/:id', async (req, res) => {
   }
 });
 
-// DELETE MAIN PLACE
-app.delete('/api/mainplaces/:id', async (req, res) => {
+// DELETE MAIN PLACE (admin only)
+app.delete('/api/mainplaces/:id', authMiddleware, async (req, res) => {
   try {
     const deletedMainPlace = await MainPlace.findOneAndDelete({ mainPlaceId: req.params.id });
     if (!deletedMainPlace) {
@@ -288,8 +308,8 @@ app.get('/api/mainplaces/:id/monuments', async (req, res) => {
   }
 });
 
-// UPDATE MONUMENT
-app.put('/api/monuments/:id', async (req, res) => {
+// UPDATE MONUMENT (admin only)
+app.put('/api/monuments/:id', authMiddleware, async (req, res) => {
   try {
     const updatedMonument = await Monument.findOneAndUpdate(
       { monumentId: req.params.id },
@@ -305,8 +325,8 @@ app.put('/api/monuments/:id', async (req, res) => {
   }
 });
 
-// DELETE MONUMENT
-app.delete('/api/monuments/:id', async (req, res) => {
+// DELETE MONUMENT (admin only)
+app.delete('/api/monuments/:id', authMiddleware, async (req, res) => {
   try {
     const deletedMonument = await Monument.findOneAndDelete({ monumentId: req.params.id });
     if (!deletedMonument) {

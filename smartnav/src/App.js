@@ -1,14 +1,20 @@
 import AIChat from './components/AIChat';
 import AdminDashboard from './components/AdminDashboard';
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import LiveMap from './pages/LiveMap';
 import Dashboard from './pages/Dashboard';
 import ScannerPage from './pages/Scanner';
 import MonumentDetail from './components/MonumentDetails';
 import HomePage from './pages/HomePage';
+import Settings from './pages/Settings';
+import Saved from './pages/Saved';
+
+const API_URL = 'http://localhost:5000/api';
 
 const App = () => {
     const [language, setLanguage] = useState("en"); // en, hi, mr
+  const [isAdmin, setIsAdmin] = useState(() => !!localStorage.getItem("adminToken"));
   const [navigationTarget, setNavigationTarget] = useState(null);
   const [activeTab, setActiveTab] = useState("Home");
   const [selectedMonumentId, setSelectedMonumentId] = useState(null);
@@ -37,6 +43,18 @@ const App = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const syncAdminMode = () => {
+      setIsAdmin(!!localStorage.getItem("adminToken"));
+    };
+
+    window.addEventListener("storage", syncAdminMode);
+
+    return () => {
+      window.removeEventListener("storage", syncAdminMode);
+    };
+  }, []);
+
   const menuItems = [
     { name: "Home", icon: "🏠" },
     { name: "Live Map", icon: "📍" },
@@ -45,11 +63,57 @@ const App = () => {
     { name: "Saved", icon: "🔖" },
     { name: "Settings", icon: "⚙️" },
     { name: "Admin", icon: "🛠️" }
-  ];
+  ].filter((item) => isAdmin || item.name !== "Admin");
 
   const handleSelectMonument = (id) => {
     setSelectedMonumentId(id);
     setLastViewedMonumentId(id);
+  };
+
+  const extractScannedId = (rawValue) => {
+    const value = String(rawValue || '').trim();
+    if (!value) return '';
+
+    try {
+      const url = new URL(value);
+      const fromQuery =
+        url.searchParams.get('id') ||
+        url.searchParams.get('mainPlaceId') ||
+        url.searchParams.get('monumentId');
+
+      if (fromQuery) return fromQuery.trim();
+
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      if (pathParts.length > 0) return pathParts[pathParts.length - 1];
+    } catch (_) {
+      // Not a URL, use plain scanned text.
+    }
+
+    if (value.includes(':')) {
+      return value.split(':').pop().trim();
+    }
+
+    return value;
+  };
+
+  const handleScanMatch = async (rawScannedValue) => {
+    const scannedId = extractScannedId(rawScannedValue);
+    if (!scannedId) return;
+
+    try {
+      const mainPlaceRes = await axios.get(`${API_URL}/mainplaces/${scannedId}`);
+      if (mainPlaceRes?.data?.mainPlaceId) {
+        setSelectedPlace(mainPlaceRes.data);
+        setSelectedMonumentId(null);
+        setNavigationTarget(null);
+        setActiveTab('Explore');
+        return;
+      }
+    } catch (_) {
+      // If not a main place, continue with monument flow.
+    }
+
+    handleSelectMonument(scannedId);
   };
 
   const handleBack = () => {
@@ -113,8 +177,18 @@ onStartNavigation={(monument) => {
           />
         );
       case "QR Scanner":
-        return <ScannerPage onScanMatch={handleSelectMonument} />;
+        return <ScannerPage onScanMatch={handleScanMatch} />;
       case "Admin":
+        if (!isAdmin) {
+          return (
+            <div className="flex items-center justify-center h-full text-center p-10">
+              <div>
+                <h2 className="text-3xl font-bold text-white mb-2">Admin Login Required</h2>
+                <p className="text-slate-400 text-sm">Sign in from Settings to manage main places and sub-places.</p>
+              </div>
+            </div>
+          );
+        }
         return <AdminDashboard />;
       case "AI Chat":
         return (
@@ -123,6 +197,10 @@ onStartNavigation={(monument) => {
             selectedPlace={selectedPlace}
           />
         );
+      case "Settings":
+        return <Settings />;
+      case "Saved":
+        return <Saved />;
 
       default:
         return (

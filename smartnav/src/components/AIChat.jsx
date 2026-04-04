@@ -3,11 +3,20 @@ import axios from "axios";
 
 const AIChat = ({ currentMonumentId, selectedPlace }) => {
   const [messages, setMessages] = useState([
-    { role: "ai", text: "Namaste! I am your Ajanta AI Guide. How can I help you explore the caves today?" }
+    { role: "ai", text: "🌍 Namaste! I'm your SmartNav Travel Assistant. I can help you with directions, nearby attractions, emergency services, cultural activities, transportation options, and booking recommendations. What would you like to explore?" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState(null);
   const scrollRef = useRef(null);
+
+  const quickActions = [
+    { id: 'transport', label: '🚗 Transport', icon: '🚗', color: 'cyan' },
+    { id: 'attractions', label: '🏛️ Attractions', icon: '🏛️', color: 'amber' },
+    { id: 'emergency', label: '🚨 Emergency', icon: '🚨', color: 'red' },
+    { id: 'cultural', label: '🎭 Cultural', icon: '🎭', color: 'purple' },
+    { id: 'bookings', label: '🏨 Bookings', icon: '🏨', color: 'green' }
+  ];
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -16,20 +25,50 @@ const AIChat = ({ currentMonumentId, selectedPlace }) => {
     }
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!input.trim()) return;
+  const handleQuickAction = async (category) => {
+    setActiveCategory(category);
+    let actionPrompt = '';
 
-    const userMessage = { role: "user", text: input };
+    switch(category) {
+      case 'transport':
+        actionPrompt = 'What are my transportation options? Tell me about different travel modes (walk, bike, car, taxi, public transit).';
+        break;
+      case 'attractions':
+        actionPrompt = 'What are the nearby attractions I can visit? Recommend some popular places.';
+        break;
+      case 'emergency':
+        actionPrompt = 'What emergency services are available? Give me emergency contact numbers.';
+        break;
+      case 'cultural':
+        actionPrompt = 'What cultural activities and experiences are available in this area?';
+        break;
+      case 'bookings':
+        actionPrompt = 'Where can I book accommodations, transportation, and tours? What are the best platforms?';
+        break;
+      default:
+        return;
+    }
+
+    setInput(actionPrompt);
+    await handleSendMessage(actionPrompt);
+  };
+
+  const handleSendMessage = async (messageText = null) => {
+    const textToSend = messageText || input.trim();
+    if (!textToSend) return;
+
+    const userMessage = { role: "user", text: textToSend };
     setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    if (!messageText) setInput("");
     setIsLoading(true);
 
     try {
       const response = await axios.post("http://localhost:5000/api/ai", {
-        prompt: input,
+        prompt: textToSend,
         monumentId: currentMonumentId,
         mainPlaceId: selectedPlace?.mainPlaceId,
         placeName: selectedPlace?.name,
+        category: activeCategory
       });
 
       setMessages((prev) => [...prev, { role: "ai", text: response.data.reply }]);
@@ -44,11 +83,33 @@ const AIChat = ({ currentMonumentId, selectedPlace }) => {
   return (
     <div className="flex flex-col h-full bg-[#050810] animate-in fade-in duration-500">
       {/* Header Info */}
-      <div className="p-6 border-b border-white/5 bg-white/5">
+      <div className="p-6 border-b border-white/5 bg-gradient-to-r from-purple-900/30 to-blue-900/30">
         <h3 className="text-xl font-bold text-white flex items-center gap-2">
-          <span className="p-2 bg-purple-500/20 rounded-lg">🤖</span> SmartNav Assistant
+          <span className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg text-lg">🌍</span>
+          SmartNav Travel Assistant
         </h3>
-        <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">AI-Powered Historical Insights</p>
+        <p className="text-xs text-slate-400 uppercase tracking-widest mt-1">Directions • Attractions • Transport • Culture • Bookings</p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="px-6 py-4 border-b border-white/5 bg-black/30">
+        <p className="text-xs text-slate-400 uppercase tracking-widest mb-3 font-bold">Quick Actions</p>
+        <div className="flex flex-wrap gap-2">
+          {quickActions.map((action) => (
+            <button
+              key={action.id}
+              onClick={() => handleQuickAction(action.id)}
+              disabled={isLoading}
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeCategory === action.id
+                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white scale-105'
+                  : 'bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white border border-white/10'
+              } disabled:opacity-50`}
+            >
+              {action.icon} {action.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Messages Area */}
@@ -67,7 +128,7 @@ const AIChat = ({ currentMonumentId, selectedPlace }) => {
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-white/5 p-4 rounded-2xl text-lime-400 text-xs animate-pulse">
-              AI is analyzing history...
+              🤖 Analyzing your request...
             </div>
           </div>
         )}
@@ -81,11 +142,11 @@ const AIChat = ({ currentMonumentId, selectedPlace }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Ask about cave paintings, history, or directions..."
+            placeholder="Ask about directions, attractions, services, bookings..."
             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-6 pr-16 text-sm text-white focus:outline-none focus:border-purple-500 transition-all"
           />
           <button 
-            onClick={handleSendMessage}
+            onClick={() => handleSendMessage()}
             disabled={isLoading}
             className="absolute right-3 top-2 w-10 h-10 bg-gradient-to-tr from-purple-500 to-blue-500 rounded-xl flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
           >

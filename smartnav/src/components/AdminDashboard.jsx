@@ -67,6 +67,11 @@ const markerOptions = [
 ];
 
 export default function AdminDashboard() {
+  const authConfig = () => {
+    const token = localStorage.getItem('adminToken');
+    return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  };
+
   const [activeTab, setActiveTab] = useState('main');
   const [mainPlaces, setMainPlaces] = useState([]);
   const [subPlaces, setSubPlaces] = useState([]);
@@ -153,10 +158,10 @@ export default function AdminDashboard() {
       };
 
       if (editMainId) {
-        await axios.put(`http://localhost:5000/api/mainplaces/${editMainId}`, payload);
+        await axios.put(`http://localhost:5000/api/mainplaces/${editMainId}`, payload, authConfig());
         setMessage('Main Place updated successfully');
       } else {
-        await axios.post('http://localhost:5000/api/mainplaces', payload);
+        await axios.post('http://localhost:5000/api/mainplaces', payload, authConfig());
         setMessage('Main Place created successfully');
       }
 
@@ -188,10 +193,10 @@ export default function AdminDashboard() {
       }
 
       if (editSubId) {
-        await axios.put(`http://localhost:5000/api/monuments/${editSubId}`, payload);
+        await axios.put(`http://localhost:5000/api/monuments/${editSubId}`, payload, authConfig());
         setMessage('Sub-place updated successfully');
       } else {
-        await axios.post('http://localhost:5000/api/monuments', payload);
+        await axios.post('http://localhost:5000/api/monuments', payload, authConfig());
         setMessage('Sub-place created successfully');
       }
 
@@ -255,7 +260,7 @@ export default function AdminDashboard() {
 
   const handleDeleteMain = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/mainplaces/${id}`);
+      await axios.delete(`http://localhost:5000/api/mainplaces/${id}`, authConfig());
       setMessage('Main Place deleted');
       loadData();
     } catch (err) {
@@ -266,7 +271,7 @@ export default function AdminDashboard() {
 
   const handleDeleteSub = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/monuments/${id}`);
+      await axios.delete(`http://localhost:5000/api/monuments/${id}`, authConfig());
       setMessage('Sub-place deleted');
       loadData();
     } catch (err) {

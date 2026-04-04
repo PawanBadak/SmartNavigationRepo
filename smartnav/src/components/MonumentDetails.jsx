@@ -232,7 +232,7 @@ const handlePlayAudio = () => {
 
     {/* NEARBY LIST */}
     <div>
-      <p className="text-white font-bold mb-2">📍 Nearby Caves</p>
+      <p className="text-white font-bold mb-2">📍 Nearby Places</p>
 {nearbyData.nearby.map((place, i) => (
   <div
     key={i} 
