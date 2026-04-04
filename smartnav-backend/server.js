@@ -9,10 +9,14 @@ const adminRoutes = require('./routes/adminRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const travelRoutes = require('./routes/travelRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const userRoutes = require('./routes/userRoutes');
+const ratingRoutes = require('./routes/ratingRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 const Monument = require('./models/Monument');
 const MainPlace = require('./models/MainPlace');
 const TouristProfile = require('./models/TouristProfile');
+const Rating = require('./models/Rating');
+const User = require('./models/User');
 
 console.log("Server starting...");
 
@@ -30,6 +34,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/travel', travelRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/ratings', ratingRoutes);
 
 app.get('/travel-assistant', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chatbot.html'));
@@ -333,6 +339,177 @@ app.delete('/api/monuments/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "Monument not found" });
     }
     res.json({ message: "Monument deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ TRACK MONUMENT VISIT (increments visitCount)
+app.post('/api/monuments/:id/visit', async (req, res) => {
+  try {
+    await Monument.findOneAndUpdate(
+      { monumentId: req.params.id },
+      { $inc: { visitCount: 1 } }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ ANALYTICS – Most visited monuments
+app.get('/api/analytics/top-monuments', async (req, res) => {
+  try {
+    const top = await Monument.find({}).sort({ visitCount: -1 }).limit(10)
+      .select('monumentId name visitCount averageRating category parentPlaceId imageUrl');
+    res.json(top);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ ANALYTICS – Most visited main places
+app.get('/api/analytics/top-places', async (req, res) => {
+  try {
+    const top = await MainPlace.find({}).sort({ visitCount: -1 }).limit(10)
+      .select('mainPlaceId name visitCount category district imageUrl');
+    res.json(top);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ ANALYTICS – Summary stats
+app.get('/api/analytics/summary', async (req, res) => {
+  try {
+    const [totalMonuments, totalPlaces, totalRatings] = await Promise.all([
+      Monument.countDocuments(),
+      MainPlace.countDocuments(),
+      Rating.countDocuments()
+    ]);
+    const totalVisits = await Monument.aggregate([{ $group: { _id: null, total: { $sum: '$visitCount' } } }]);
+    res.json({
+      totalMonuments,
+      totalPlaces,
+      totalRatings,
+      totalVisits: totalVisits[0]?.total || 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ TRACK MAINPLACE VISIT
+app.post('/api/mainplaces/:id/visit', async (req, res) => {
+  try {
+    await MainPlace.findOneAndUpdate(
+      { mainPlaceId: req.params.id },
+      { $inc: { visitCount: 1 } }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ TOUR OPTIMIZER – get personalized recommendations based on interests
+app.post('/api/tour/recommend', async (req, res) => {
+  try {
+    const { interests, availableHours, budget, mainPlaceId } = req.body;
+    const availableMinutes = (availableHours || 3) * 60;
+
+    let query = {};
+    if (mainPlaceId) query.parentPlaceId = mainPlaceId;
+
+    // Map interests to categories and marker types
+    const interestToCategory = {
+      history: ['Cave', 'Temple', 'Museum'],
+      religious: ['Temple'],
+      photography: ['Viewpoint', 'Cave', 'Temple'],
+      food: ['Restaurant'],
+      nature: ['Viewpoint', 'Park'],
+      adventure: ['Viewpoint'],
+      culture: ['Cave', 'Temple', 'Museum']
+    };
+
+    const interestToMarker = {
+      history: ['history'],
+      religious: ['religious'],
+      photography: ['highlight', 'nature', 'history'],
+      food: ['food'],
+      nature: ['nature', 'water'],
+      adventure: ['nature', 'highlight']
+    };
+
+    let monuments = await Monument.find(query).lean();
+
+    // Filter by interests
+    if (interests && interests.length > 0) {
+      const targetCategories = [...new Set(interests.flatMap(i => interestToCategory[i] || []))];
+      const targetMarkers = [...new Set(interests.flatMap(i => interestToMarker[i] || []))];
+
+      const filtered = monuments.filter(m =>
+        targetCategories.includes(m.category) || targetMarkers.includes(m.markerType)
+      );
+      if (filtered.length > 0) monuments = filtered;
+    }
+
+    // Sort by popularity & rating
+    monuments.sort((a, b) => {
+      const scoreA = (a.isPopular ? 10 : 0) + (a.averageRating || 0) * 2;
+      const scoreB = (b.isPopular ? 10 : 0) + (b.averageRating || 0) * 2;
+      return scoreB - scoreA;
+    });
+
+    // Pick places fitting time budget (treat 0 visitDuration as 30 mins)
+    let totalTime = 0;
+    const selected = [];
+    const TRAVEL_BUFFER = 10; // 10 min travel between each
+
+    for (const m of monuments) {
+      const duration = (m.visitDuration && m.visitDuration > 0) ? m.visitDuration : 30;
+      if (totalTime + duration + (selected.length > 0 ? TRAVEL_BUFFER : 0) <= availableMinutes) {
+        selected.push(m);
+        totalTime += duration + (selected.length > 1 ? TRAVEL_BUFFER : 0);
+      }
+      if (selected.length >= 10) break;
+    }
+
+    // Fallback: if nothing fits (very short time), pick top 3 with shortest visit
+    if (selected.length === 0 && monuments.length > 0) {
+      const sorted = [...monuments].sort((a, b) => ((a.visitDuration || 30) - (b.visitDuration || 30)));
+      selected.push(...sorted.slice(0, Math.min(3, sorted.length)));
+      totalTime = selected.reduce((s, m) => s + (m.visitDuration || 30), 0);
+    }
+
+    // Calculate rough cost
+    const parseFee = (fee) => {
+      if (!fee) return 0;
+      const match = fee.toString().match(/\d+/);
+      return match ? parseInt(match[0]) : 0;
+    };
+
+    const totalCost = selected.reduce((sum, m) => sum + parseFee(m.entryFee), 0);
+
+    const itinerary = selected.map((m, idx) => ({
+      order: idx + 1,
+      monumentId: m.monumentId,
+      name: m.name,
+      category: m.category,
+      visitDuration: m.visitDuration || 30,
+      entryFee: m.entryFee || 'Free',
+      imageUrl: m.imageUrl,
+      coordinates: m.coordinates,
+      isPopular: m.isPopular,
+      averageRating: m.averageRating || 0
+    }));
+
+    res.json({
+      itinerary,
+      totalStops: selected.length,
+      totalTimeMinutes: totalTime,
+      estimatedCost: totalCost > 0 ? `₹${totalCost}` : 'Free'
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

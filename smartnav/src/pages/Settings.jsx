@@ -269,6 +269,42 @@ const Settings = () => {
           </div>
         </section>
 
+        {/* Offline Mode */}
+        <section className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6 hover:border-lime-400/30 transition">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span className="text-2xl">📥</span> Offline Mode
+          </h2>
+          <p className="text-slate-400 text-sm mb-4">
+            Download all place data to use SmartNav without internet. All place info, tour data, and descriptions will work offline.
+          </p>
+          <button
+            onClick={async () => {
+              setSavedMessage('⏳ Downloading data...');
+              try {
+                const [mainRes, monsRes] = await Promise.all([
+                  fetch('http://localhost:5000/api/mainplaces').then(r => r.json()),
+                  fetch('http://localhost:5000/api/monuments').then(r => r.json())
+                ]);
+                localStorage.setItem('offlineMainPlaces', JSON.stringify(mainRes));
+                localStorage.setItem('offlineMonuments', JSON.stringify(monsRes));
+                localStorage.setItem('offlineCachedAt', new Date().toISOString());
+                setSavedMessage(`✅ Cached ${mainRes.length} places & ${monsRes.length} monuments for offline use!`);
+              } catch {
+                setSavedMessage('❌ Download failed. Check your internet connection.');
+              }
+              setTimeout(() => setSavedMessage(''), 4000);
+            }}
+            className="w-full p-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-lg hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition"
+          >
+            📥 Download for Offline Use
+          </button>
+          {localStorage.getItem('offlineCachedAt') && (
+            <p className="text-slate-400 text-xs mt-2">
+              Last cached: {new Date(localStorage.getItem('offlineCachedAt') || '').toLocaleString()}
+            </p>
+          )}
+        </section>
+
         {/* Admin Access */}
         <section className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-6 hover:border-lime-400/30 transition">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">

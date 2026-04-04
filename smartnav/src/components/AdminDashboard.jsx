@@ -8,7 +8,9 @@ import {
   Trash2,
   Save,
   X,
-  Layers
+  Layers,
+  BarChart2,
+  QrCode
 } from 'lucide-react';
 
 const initialMainPlaceState = {
@@ -75,6 +77,10 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('main');
   const [mainPlaces, setMainPlaces] = useState([]);
   const [subPlaces, setSubPlaces] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
+  const [topMonuments, setTopMonuments] = useState([]);
+  const [qrMonumentId, setQrMonumentId] = useState('');
+  const [qrGenerated, setQrGenerated] = useState(false);
 
   const [mainForm, setMainForm] = useState(initialMainPlaceState);
   const [subForm, setSubForm] = useState(initialSubPlaceState);
@@ -90,7 +96,21 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadData();
+    loadAnalytics();
   }, []);
+
+  const loadAnalytics = async () => {
+    try {
+      const [summaryRes, topRes] = await Promise.all([
+        axios.get('http://localhost:5000/api/analytics/summary'),
+        axios.get('http://localhost:5000/api/analytics/top-monuments')
+      ]);
+      setAnalytics(summaryRes.data);
+      setTopMonuments(topRes.data || []);
+    } catch (err) {
+      console.error('Analytics load failed', err);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -298,6 +318,16 @@ export default function AdminDashboard() {
                 className={`flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium ${activeTab === 'sub' ? 'bg-lime-500/30 text-lime-200' : 'bg-slate-800/80 text-slate-200 hover:bg-slate-700/70'}`}>
                 <MapPin size={18} /> Manage Sub-places
               </button>
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium ${activeTab === 'analytics' ? 'bg-lime-500/30 text-lime-200' : 'bg-slate-800/80 text-slate-200 hover:bg-slate-700/70'}`}>
+                <BarChart2 size={18} /> Analytics
+              </button>
+              <button
+                onClick={() => setActiveTab('qr')}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium ${activeTab === 'qr' ? 'bg-lime-500/30 text-lime-200' : 'bg-slate-800/80 text-slate-200 hover:bg-slate-700/70'}`}>
+                <QrCode size={18} /> QR Generator
+              </button>
             </nav>
           </aside>
 
@@ -492,8 +522,101 @@ export default function AdminDashboard() {
                     </div>
                   </section>
                 )}
-              </>
-            )}
+              {activeTab === 'analytics' && (
+                <section>
+                  <h3 className="mb-4 text-xl font-bold text-lime-300">📊 Analytics Dashboard</h3>
+                  {analytics && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      {[
+                        { label: 'Total Places', value: analytics.totalPlaces, icon: '🏛️', color: 'from-blue-600 to-blue-800' },
+                        { label: 'Total Monuments', value: analytics.totalMonuments, icon: '📍', color: 'from-green-600 to-green-800' },
+                        { label: 'Total Visits', value: analytics.totalVisits, icon: '👥', color: 'from-purple-600 to-purple-800' },
+                        { label: 'Total Ratings', value: analytics.totalRatings, icon: '⭐', color: 'from-yellow-600 to-yellow-800' },
+                      ].map((stat) => (
+                        <div key={stat.label} className={`bg-gradient-to-br ${stat.color} rounded-2xl p-4 text-center`}>
+                          <div className="text-3xl mb-2">{stat.icon}</div>
+                          <p className="text-3xl font-black text-white">{stat.value}</p>
+                          <p className="text-slate-300 text-xs mt-1">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <h4 className="text-lg font-bold text-lime-200 mb-3">🏆 Most Visited Monuments</h4>
+                  {topMonuments.length === 0 ? (
+                    <p className="text-slate-400">No visit data yet. Visitors need to open monument details to track visits.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {topMonuments.map((m, idx) => (
+                        <div key={m.monumentId} className="flex items-center gap-4 bg-slate-800/60 rounded-xl p-3">
+                          <span className="text-lime-400 font-black text-lg w-6">#{idx + 1}</span>
+                          {m.imageUrl && <img src={m.imageUrl} alt={m.name} className="w-12 h-12 rounded-lg object-cover" onError={(e)=>{e.target.style.display='none'}} />}
+                          <div className="flex-1">
+                            <p className="text-white font-bold">{m.name}</p>
+                            <p className="text-slate-400 text-xs">{m.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lime-300 font-black">{m.visitCount} visits</p>
+                            {m.averageRating > 0 && <p className="text-yellow-400 text-xs">★ {m.averageRating?.toFixed(1)}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <button onClick={loadAnalytics} className="px-4 py-2 bg-lime-500/20 border border-lime-500/50 rounded-xl text-lime-300 font-bold hover:bg-lime-500/30 transition text-sm">
+                      🔄 Refresh Analytics
+                    </button>
+                  </div>
+                </section>
+              )}
+
+              {activeTab === 'qr' && (
+                <section>
+                  <h3 className="mb-4 text-xl font-bold text-lime-300">📱 QR Code Generator</h3>
+                  <p className="text-slate-400 text-sm mb-4">Generate QR codes for monuments. When scanned, they open the monument details in SmartNav.</p>
+
+                  <div className="mb-4">
+                    <label className="text-slate-300 text-sm font-bold block mb-2">Select Monument</label>
+                    <select
+                      value={qrMonumentId}
+                      onChange={(e) => { setQrMonumentId(e.target.value); setQrGenerated(false); }}
+                      className="w-full rounded-xl border border-slate-600 bg-slate-800/60 p-3 text-slate-100"
+                    >
+                      <option value="">-- Select a monument --</option>
+                      {subPlaces.map((m) => (
+                        <option key={m.monumentId} value={m.monumentId}>{m.name} ({m.monumentId})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {qrMonumentId && (
+                    <div className="text-center space-y-4">
+                      <div className="inline-block p-4 bg-white rounded-2xl shadow-2xl">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`http://localhost:3000/?id=${qrMonumentId}`)}`}
+                          alt={`QR for ${qrMonumentId}`}
+                          className="w-48 h-48"
+                        />
+                      </div>
+                      <p className="text-slate-300 text-sm">Monument ID: <span className="text-lime-300 font-bold">{qrMonumentId}</span></p>
+                      <p className="text-slate-400 text-xs">Scan this QR to open monument details in SmartNav</p>
+                      <a
+                        href={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(`http://localhost:3000/?id=${qrMonumentId}`)}`}
+                        download={`qr-${qrMonumentId}.png`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block px-6 py-3 bg-lime-500 text-slate-950 font-black rounded-xl hover:bg-lime-400 transition"
+                      >
+                        ⬇️ Download QR Code
+                      </a>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              </>)}
           </main>
         </div>
       </div>

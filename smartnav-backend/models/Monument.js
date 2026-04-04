@@ -34,19 +34,22 @@ const monumentSchema = new mongoose.Schema({
   highlights: [String],
   isPopular: { type: Boolean, default: false },
   caveNumber: Number,
-  parentPlaceId: { type: String, required: true } // 👈 this links sub-place to MainPlace
+  parentPlaceId: { type: String, required: true }, // 👈 this links sub-place to MainPlace
+  visitCount: { type: Number, default: 0 },
+  averageRating: { type: Number, default: 0 },
+  visitDuration: { type: Number, default: 30 }, // estimated minutes to visit
+  crowdLevel: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' }
 });
 
 monumentSchema.index({ location: "2dsphere" });
 
-monumentSchema.pre("validate", function ensureGeoPoint(next) {
+monumentSchema.pre("validate", function ensureGeoPoint() {
   if (this.coordinates?.lat != null && this.coordinates?.lng != null) {
     this.location = {
       type: "Point",
       coordinates: [this.coordinates.lng, this.coordinates.lat]
     };
   }
-  next();
 });
 
 module.exports = mongoose.models.Monument || mongoose.model('Monument', monumentSchema);

@@ -19,7 +19,11 @@ const mainPlaceSchema = new mongoose.Schema({
   timings: String,
   highlights: [String],
   distance: String,
-  isPopular: { type: Boolean, default: true }
+  isPopular: { type: Boolean, default: true },
+  visitDuration: { type: Number, default: 120 }, // estimated minutes
+  crowdPeak: { type: String, default: '10AM-2PM' }, // when it gets crowded
+  visitCount: { type: Number, default: 0 },
+  entryFeeAmount: { type: Number, default: 0 } // numeric fee for optimizer
 });
 
 module.exports = mongoose.models.MainPlace || mongoose.model('MainPlace', mainPlaceSchema);
