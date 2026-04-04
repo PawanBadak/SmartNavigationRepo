@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
-const AIChat = ({ currentMonumentId }) => {
+const AIChat = ({ currentMonumentId, selectedPlace }) => {
   const [messages, setMessages] = useState([
     { role: "ai", text: "Namaste! I am your Ajanta AI Guide. How can I help you explore the caves today?" }
   ]);
@@ -28,11 +28,14 @@ const AIChat = ({ currentMonumentId }) => {
       const response = await axios.post("http://localhost:5000/api/ai", {
         prompt: input,
         monumentId: currentMonumentId,
+        mainPlaceId: selectedPlace?.mainPlaceId,
+        placeName: selectedPlace?.name,
       });
 
       setMessages((prev) => [...prev, { role: "ai", text: response.data.reply }]);
     } catch (error) {
-      setMessages((prev) => [...prev, { role: "ai", text: "I'm having trouble processing your request. Please try again." }]);
+      const fallbackText = error?.response?.data?.reply || "I'm having trouble processing your request. Please try again.";
+      setMessages((prev) => [...prev, { role: "ai", text: fallbackText }]);
     } finally {
       setIsLoading(false);
     }

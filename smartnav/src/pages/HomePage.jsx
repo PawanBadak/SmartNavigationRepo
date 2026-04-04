@@ -3,16 +3,30 @@ import axios from "axios";
 
 const API_URL = "http://localhost:5000/api";
 
-const HomePage = ({ onSelectPlace }) => {
+const HomePage = ({ onSelectPlace, onNavigateToLiveMap, currentDistrict, setCurrentDistrict }) => {
   const [mainPlaces, setMainPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userLat, setUserLat] = useState(20.5519); // Default to Ajanta area
-  const [userLng, setUserLng] = useState(75.7033);
+  const [userLat, setUserLat] = useState(19.1383); // Default to Nanded
+  const [userLng, setUserLng] = useState(77.3210);
   const [locationName, setLocationName] = useState("Fetching location...");
 
-  // Haversine formula to calculate distance
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radius of the Earth in km
+  const formatDistance = (distanceMeters) => {
+    if (!distanceMeters || distanceMeters === Infinity) return "...";
+    if (distanceMeters >= 1000) return `${(distanceMeters / 1000).toFixed(1)} km`;
+    return `${Math.round(distanceMeters)} m`;
+  };
+
+  const formatDurationFromMinutes = (minutes) => {
+    if (!minutes || minutes < 1) return "<1 min";
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const rem = minutes % 60;
+    if (rem === 0) return `${hours} hr`;
+    return `${hours} hr ${rem} min`;
+  };
+
+  const haversineDistanceMeters = (lat1, lon1, lat2, lon2) => {
+    const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const a =
@@ -20,7 +34,18 @@ const HomePage = ({ onSelectPlace }) => {
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return (R * c).toFixed(1);
+    return Math.round(R * c);
+  };
+
+  const fetchDrivingRouteSummary = async (fromLat, fromLng, toLat, toLng) => {
+    const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=false&alternatives=false&steps=false`;
+    const response = await axios.get(url);
+    const route = response.data?.routes?.[0];
+    if (!route) return null;
+    return {
+      distanceMeters: Math.round(route.distance),
+      durationMinutes: Math.max(1, Math.ceil(route.duration / 60))
+    };
   };
 
   // Reverse geocoding using OpenStreetMap Nominatim API
@@ -35,9 +60,12 @@ const HomePage = ({ onSelectPlace }) => {
       const district = data.address?.county || data.address?.state_district || "";
       const taluka = data.address?.subdistrict || "";
       setLocationName(`${city}, ${state}\n${district}${taluka ? `, ${taluka}` : ""}`);
+      setCurrentDistrict(district || city); // Use district if available, else city
+      console.log("Detected location:", { city, district, state, currentDistrict: district || city });
     } catch (error) {
       console.error("Error fetching location name:", error);
       setLocationName("Location unavailable");
+      setCurrentDistrict("Unknown");
     }
   };
 
@@ -61,20 +89,58 @@ const HomePage = ({ onSelectPlace }) => {
   // Fetch main places
   useEffect(() => {
     const fetchPlaces = async () => {
+      if (!currentDistrict) {
+        console.log("Waiting for currentDistrict to be set...");
+        return;
+      }
+      console.log("Fetching places for district:", currentDistrict);
       setLoading(true);
       try {
-        const res = await axios.get(`${API_URL}/mainplaces`);
-        const data = res.data.map((place) => {
+        const filteredRes = await axios.get(`${API_URL}/mainplaces?city=${encodeURIComponent(currentDistrict)}`);
+        let places = filteredRes.data || [];
+
+        // Fallback: if no exact district matches, show all main places instead of empty state.
+        if (places.length === 0) {
+          const allRes = await axios.get(`${API_URL}/mainplaces`);
+          places = allRes.data || [];
+        }
+
+        console.log("Fetched places:", places.length, "places");
+        const data = await Promise.all(places.map(async (place) => {
           const lat = place.coordinates?.lat;
           const lng = place.coordinates?.lng;
 
+          if (!lat || !lng) {
+            return {
+              ...place,
+              distanceMeters: Infinity,
+              durationMinutes: null,
+              distanceLabel: "...",
+              durationLabel: "..."
+            };
+          }
+
+          let distanceMeters = haversineDistanceMeters(userLat, userLng, lat, lng);
+          let durationMinutes = Math.max(1, Math.ceil(distanceMeters / 13.9 / 60));
+
+          try {
+            const route = await fetchDrivingRouteSummary(userLat, userLng, lat, lng);
+            if (route) {
+              distanceMeters = route.distanceMeters;
+              durationMinutes = route.durationMinutes;
+            }
+          } catch (routeErr) {
+            console.error(`Route estimate failed for ${place.name}:`, routeErr.message);
+          }
+
           return {
             ...place,
-            distance: lat && lng
-              ? calculateDistance(userLat, userLng, lat, lng)
-              : "0.0",
+            distanceMeters,
+            durationMinutes,
+            distanceLabel: formatDistance(distanceMeters),
+            durationLabel: formatDurationFromMinutes(durationMinutes),
           };
-        });
+        }));
 
         setMainPlaces(data);
       } catch (err) {
@@ -85,7 +151,7 @@ const HomePage = ({ onSelectPlace }) => {
       }
     };
     fetchPlaces();
-  }, [userLat, userLng]);
+  }, [userLat, userLng, currentDistrict]);
 
   if (loading) {
     return (
@@ -119,7 +185,7 @@ const HomePage = ({ onSelectPlace }) => {
             <div className="flex items-center gap-2 mt-1">
               <span className="w-3 h-3 rounded-full bg-lime-400 animate-pulse shadow-lime-400/50 shadow-md"></span>
               <span className="text-slate-200 text-lg font-medium whitespace-pre-line drop-shadow">
-                {locationName}
+                {locationName} (District: {currentDistrict})
               </span>
             </div>
             <p className="text-slate-400 text-base mt-2 font-light">
@@ -131,11 +197,11 @@ const HomePage = ({ onSelectPlace }) => {
 
       {/* MAIN PLACES - Horizontal Scroll */}
       <div className="relative z-10 px-8 pb-12 pt-2">
-        <h2 className="text-3xl font-bold text-white mb-8 tracking-tight drop-shadow-lg">Main Places</h2>
+        <h2 className="text-3xl font-bold text-white mb-8 tracking-tight drop-shadow-lg">Best Tourist Places</h2>
 
         {mainPlaces.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-slate-400 text-lg">No places found nearby</p>
+            <p className="text-slate-400 text-lg">No best tourist place found in this city</p>
           </div>
         ) : (
           <div className="flex gap-8 overflow-x-auto pb-2 custom-scrollbar snap-x">
@@ -157,7 +223,7 @@ const HomePage = ({ onSelectPlace }) => {
                     }}
                   />
                   <div className="absolute top-3 right-3 bg-gradient-to-tr from-lime-400 via-cyan-400 to-indigo-500 text-black text-xs font-bold px-3 py-1 rounded-full shadow-md backdrop-blur-md">
-                    {place.distance} km
+                    {place.distanceLabel}
                   </div>
                 </div>
 
@@ -169,12 +235,16 @@ const HomePage = ({ onSelectPlace }) => {
                   <p className="text-slate-200 text-base mb-3 line-clamp-2 font-light">
                     {place.shortDescription}
                   </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse"></span>
-                    <span className="text-lime-300 text-sm font-semibold">
-                      {place.distance} km away
-                    </span>
-                  </div>
+                  <p className="text-xs text-slate-300 mb-3">ETA by car: {place.durationLabel}</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onNavigateToLiveMap(place);
+                    }}
+                    className="w-full bg-gradient-to-r from-lime-400 to-cyan-500 text-black font-bold py-2 px-4 rounded-full hover:scale-105 transition-all duration-200 shadow-lg"
+                  >
+                    Live Map
+                  </button>
                 </div>
               </div>
             ))}

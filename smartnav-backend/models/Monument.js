@@ -14,6 +14,10 @@ const monumentSchema = new mongoose.Schema({
   imageUrl: String,
   images: [String],
   category: { type: String, enum: ['Cave', 'Temple', 'Utility', 'Entry', 'Restaurant', 'Viewpoint'] },
+  markerType: {
+    type: String,
+    enum: ['religious', 'food', 'nature', 'history', 'stay', 'entry', 'washroom', 'water', 'parking', 'current', 'highlight']
+  },
   timings: String,
   entryFee: String,
   highlights: [String],

@@ -12,8 +12,10 @@ const App = () => {
   const [navigationTarget, setNavigationTarget] = useState(null);
   const [activeTab, setActiveTab] = useState("Home");
   const [selectedMonumentId, setSelectedMonumentId] = useState(null);
+  const [lastViewedMonumentId, setLastViewedMonumentId] = useState(null);
   const [location, setLocation] = useState(null); // Start with null, will be set after location permission
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [currentDistrict, setCurrentDistrict] = useState("");
 
   // Request location permission and set to Ajanta
   useEffect(() => {
@@ -47,6 +49,7 @@ const App = () => {
 
   const handleSelectMonument = (id) => {
     setSelectedMonumentId(id);
+    setLastViewedMonumentId(id);
   };
 
   const handleBack = () => {
@@ -87,7 +90,11 @@ onStartNavigation={(monument) => {
         return <HomePage onSelectPlace={(place) => {
           setSelectedPlace(place);
           setActiveTab("Explore");
-        }} />;
+        }} onNavigateToLiveMap={(place) => {
+          setSelectedPlace(place);
+          setNavigationTarget(null);
+          setActiveTab("Live Map");
+        }} currentDistrict={currentDistrict} setCurrentDistrict={setCurrentDistrict} />;
       case "Explore":
         return <Dashboard selectedMainPlace={selectedPlace} onSelectMonument={handleSelectMonument} onSwitchTab={setActiveTab} language={language} />;
       case "Live Map":
@@ -98,6 +105,11 @@ onStartNavigation={(monument) => {
             navigationTarget={navigationTarget}
             language={language}
             selectedMainPlace={selectedPlace}
+            currentCity={currentDistrict}
+            onSelectMainPlace={(place) => {
+              setSelectedPlace(place);
+              setActiveTab("Explore");
+            }}
           />
         );
       case "QR Scanner":
@@ -105,7 +117,12 @@ onStartNavigation={(monument) => {
       case "Admin":
         return <AdminDashboard />;
       case "AI Chat":
-        return <AIChat currentMonumentId={selectedMonumentId} />;
+        return (
+          <AIChat
+            currentMonumentId={selectedMonumentId || lastViewedMonumentId}
+            selectedPlace={selectedPlace}
+          />
+        );
 
       default:
         return (

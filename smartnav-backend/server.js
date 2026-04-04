@@ -38,7 +38,16 @@ app.get("/api/monuments/nearby/:id", async (req, res) => {
       return res.status(404).json({ message: "Monument not found" });
     }
 
-    const all = await Monument.find({ category: "Cave" });
+    // Prefer nearby places from the same parent place to avoid unrelated locations (e.g., Ajanta shown for Nanded).
+    let all = [];
+    if (current.parentPlaceId) {
+      all = await Monument.find({ parentPlaceId: current.parentPlaceId });
+    }
+
+    // Fallback only if parentPlaceId is missing or no siblings exist.
+    if (!all || all.length === 0) {
+      all = await Monument.find({ category: "Cave" });
+    }
 
     // 🔥 Distance calculation
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -62,7 +71,7 @@ app.get("/api/monuments/nearby/:id", async (req, res) => {
     };
 
     const nearby = all
-      .filter((m) => m.monumentId !== current.monumentId)
+      .filter((m) => m.monumentId !== current.monumentId && m.coordinates?.lat && m.coordinates?.lng)
       .map((m) => ({
         monumentId: m.monumentId,
         name: m.name,
@@ -195,7 +204,20 @@ app.get('/caves', async (req, res) => {
 // GET ALL MAIN PLACES
 app.get('/api/mainplaces', async (req, res) => {
   try {
-    const mainPlaces = await MainPlace.find().sort({ name: 1 });
+    const { city } = req.query;
+    let query = {};
+    if (city) {
+      query.district = { $regex: city, $options: 'i' }; // Case-insensitive match
+      console.log("Filtering mainplaces by district:", city, "query:", query);
+    } else {
+      console.log("Fetching all mainplaces, no city filter");
+    }
+    const mainPlaces = await MainPlace.find(query).sort({ name: 1 });
+    console.log("Found mainplaces:", mainPlaces.length);
+    // Log districts of found places
+    if (mainPlaces.length > 0) {
+      console.log("Districts of found places:", mainPlaces.map(p => p.district));
+    }
     res.json(mainPlaces);
   } catch (err) {
     res.status(500).json({ error: err.message });

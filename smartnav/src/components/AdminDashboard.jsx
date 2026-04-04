@@ -41,6 +41,7 @@ const initialSubPlaceState = {
   audioUrl: '',
   imageUrl: '',
   category: 'Cave',
+  markerType: 'religious',
   timings: '',
   entryFee: '',
   highlights: '',
@@ -51,6 +52,19 @@ const initialSubPlaceState = {
 
 const categoriesMain = ['Heritage Site', 'Temple', 'Fort', 'Museum', 'Park'];
 const categoriesSub = ['Cave', 'Temple', 'Utility', 'Entry', 'Restaurant', 'Viewpoint'];
+const markerOptions = [
+  { value: 'religious', label: '🛕 Religious Marker' },
+  { value: 'food', label: '🍽️ Food / Langar Marker' },
+  { value: 'nature', label: '🌊 River / Nature Marker' },
+  { value: 'history', label: '🏛️ Museum / History Marker' },
+  { value: 'stay', label: '🛏️ Stay / Accommodation Marker' },
+  { value: 'entry', label: '🚪 Entrance / Gate Marker' },
+  { value: 'washroom', label: '🚻 Washroom Marker' },
+  { value: 'water', label: '🚰 Drinking Water Marker' },
+  { value: 'parking', label: '🚗 Parking Marker' },
+  { value: 'current', label: '📍 Current Location Marker' },
+  { value: 'highlight', label: '⭐ Featured / Important Spot' }
+];
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('main');
@@ -164,6 +178,7 @@ export default function AdminDashboard() {
         ...subForm,
         coordinates: { lat: parseFloat(subForm.lat), lng: parseFloat(subForm.lng) },
         highlights: subForm.highlights ? subForm.highlights.split(',').map((h) => h.trim()) : [],
+        markerType: subForm.markerType,
         parentPlaceId: subForm.parentPlaceId
       };
 
@@ -227,6 +242,7 @@ export default function AdminDashboard() {
       audioUrl: sub.audioUrl || '',
       imageUrl: sub.imageUrl || '',
       category: sub.category || 'Cave',
+      markerType: sub.markerType || 'religious',
       timings: sub.timings || '',
       entryFee: sub.entryFee || '',
       highlights: (sub.highlights || []).join(', '),
@@ -368,6 +384,12 @@ export default function AdminDashboard() {
                         {categoriesSub.map((c) => <option key={c} value={c}>{c}</option>)}
                       </select>
 
+                      <select name="markerType" value={subForm.markerType} onChange={handleSubChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required>
+                        {markerOptions.map((marker) => (
+                          <option key={marker.value} value={marker.value}>{marker.label}</option>
+                        ))}
+                      </select>
+
                       <input name="shortDescription" value={subForm.shortDescription} onChange={handleSubChange} placeholder="Short Description" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
                       <input name="timings" value={subForm.timings} onChange={handleSubChange} placeholder="Timings" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
                       <input name="entryFee" value={subForm.entryFee} onChange={handleSubChange} placeholder="Entry Fee" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
@@ -406,6 +428,7 @@ export default function AdminDashboard() {
                               <tr className="text-xs uppercase text-slate-400">
                                 <th className="px-2 py-1">Name</th>
                                 <th className="px-2 py-1">Category</th>
+                                <th className="px-2 py-1">Marker</th>
                                 <th className="px-2 py-1">Cave #</th>
                                 <th className="px-2 py-1">Actions</th>
                               </tr>
@@ -415,6 +438,7 @@ export default function AdminDashboard() {
                                 <tr key={sub._id || sub.monumentId} className="border-y border-slate-700 hover:bg-slate-800/70">
                                   <td className="px-2 py-1">{sub.name}</td>
                                   <td className="px-2 py-1">{sub.category}</td>
+                                  <td className="px-2 py-1">{sub.markerType || 'religious'}</td>
                                   <td className="px-2 py-1">{sub.caveNumber || 'N/A'}</td>
                                   <td className="flex flex-wrap gap-2 px-2 py-1">
                                     <button title="Edit" onClick={() => handleEditSub(sub)} className="rounded-md bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500"><Edit3 size={14} /></button>
@@ -438,6 +462,7 @@ export default function AdminDashboard() {
                             <th className="px-2 py-1">Name</th>
                             <th className="px-2 py-1">Main Place</th>
                             <th className="px-2 py-1">Category</th>
+                            <th className="px-2 py-1">Marker</th>
                             <th className="px-2 py-1">Actions</th>
                           </tr>
                         </thead>
@@ -449,6 +474,7 @@ export default function AdminDashboard() {
                                 <td className="px-2 py-1">{sub.name}</td>
                                 <td className="px-2 py-1">{parent?.name || 'Unknown'}</td>
                                 <td className="px-2 py-1">{sub.category}</td>
+                                <td className="px-2 py-1">{sub.markerType || 'religious'}</td>
                                 <td className="flex flex-wrap gap-2 px-2 py-1">
                                   <button title="Edit" onClick={() => handleEditSub(sub)} className="rounded-md bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500"><Edit3 size={14} /></button>
                                   <button title="Delete" onClick={() => handleDeleteSub(sub._id || sub.monumentId)} className="rounded-md bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-500"><Trash2 size={14} /></button>
