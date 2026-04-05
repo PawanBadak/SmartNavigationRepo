@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
   Home,
@@ -29,7 +29,9 @@ const initialMainPlaceState = {
   timings: '',
   highlights: '',
   distance: '',
-  isPopular: false
+  isPopular: false,
+  visitDuration: '',
+  images: ''
 };
 
 const initialSubPlaceState = {
@@ -49,7 +51,10 @@ const initialSubPlaceState = {
   highlights: '',
   isPopular: false,
   caveNumber: '',
-  parentPlaceId: ''
+  parentPlaceId: '',
+  visitDuration: '',
+  crowdLevel: 'medium',
+  images: ''
 };
 
 const categoriesMain = ['Heritage Site', 'Temple', 'Fort', 'Museum', 'Park'];
@@ -73,6 +78,10 @@ export default function AdminDashboard() {
     const token = localStorage.getItem('adminToken');
     return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
   };
+
+  // Refs for scrolling
+  const mainFormRef = useRef(null);
+  const subFormRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState('main');
   const [mainPlaces, setMainPlaces] = useState([]);
@@ -174,7 +183,9 @@ export default function AdminDashboard() {
       const payload = {
         ...mainForm,
         coordinates: { lat: parseFloat(mainForm.lat), lng: parseFloat(mainForm.lng) },
-        highlights: mainForm.highlights ? mainForm.highlights.split(',').map((h) => h.trim()) : []
+        highlights: mainForm.highlights ? mainForm.highlights.split(',').map((h) => h.trim()) : [],
+        images: mainForm.images ? mainForm.images.split(',').map((img) => img.trim()) : [],
+        visitDuration: mainForm.visitDuration ? parseInt(mainForm.visitDuration, 10) : undefined
       };
 
       if (editMainId) {
@@ -203,8 +214,11 @@ export default function AdminDashboard() {
         ...subForm,
         coordinates: { lat: parseFloat(subForm.lat), lng: parseFloat(subForm.lng) },
         highlights: subForm.highlights ? subForm.highlights.split(',').map((h) => h.trim()) : [],
+        images: subForm.images ? subForm.images.split(',').map((img) => img.trim()) : [],
         markerType: subForm.markerType,
-        parentPlaceId: subForm.parentPlaceId
+        parentPlaceId: subForm.parentPlaceId,
+        visitDuration: subForm.visitDuration ? parseInt(subForm.visitDuration, 10) : undefined,
+        crowdLevel: subForm.crowdLevel
       };
 
       if (!payload.parentPlaceId) {
@@ -247,9 +261,15 @@ export default function AdminDashboard() {
       timings: main.timings || '',
       highlights: (main.highlights || []).join(', '),
       distance: main.distance || '',
-      isPopular: main.isPopular || false
+      isPopular: main.isPopular || false,
+      visitDuration: main.visitDuration || '',
+      images: (main.images || []).join(', ')
     });
     setActiveTab('main');
+    // Scroll to form after state update
+    setTimeout(() => {
+      mainFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleEditSub = (sub) => {
@@ -273,9 +293,16 @@ export default function AdminDashboard() {
       highlights: (sub.highlights || []).join(', '),
       isPopular: sub.isPopular || false,
       caveNumber: sub.caveNumber || '',
-      parentPlaceId: sub.parentPlaceId || ''
+      parentPlaceId: sub.parentPlaceId || '',
+      visitDuration: sub.visitDuration || '',
+      crowdLevel: sub.crowdLevel || 'medium',
+      images: (sub.images || []).join(', ')
     });
     setActiveTab('sub');
+    // Scroll to form after state update
+    setTimeout(() => {
+      subFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleDeleteMain = async (id) => {
@@ -338,187 +365,232 @@ export default function AdminDashboard() {
             ) : (
               <>
                 {activeTab === 'main' ? (
-                  <section>
-                    <h3 className="mb-3 text-xl font-bold text-lime-300">Add / Edit Main Place</h3>
-                    <form onSubmit={handleMainSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <input name="mainPlaceId" value={mainForm.mainPlaceId} onChange={handleMainChange} placeholder="Main Place ID" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 placeholder-slate-400" required />
-                      <input name="name" value={mainForm.name} onChange={handleMainChange} placeholder="Name" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required />
-                      <input name="shortDescription" value={mainForm.shortDescription} onChange={handleMainChange} placeholder="Short Description" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <select name="category" value={mainForm.category} onChange={handleMainChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100">
-                        {categoriesMain.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      <input name="district" value={mainForm.district} onChange={handleMainChange} placeholder="District" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="state" value={mainForm.state} onChange={handleMainChange} placeholder="State" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="timings" value={mainForm.timings} onChange={handleMainChange} placeholder="Timings" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="entryFee" value={mainForm.entryFee} onChange={handleMainChange} placeholder="Entry Fee" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="lat" value={mainForm.lat} onChange={handleMainChange} placeholder="Latitude" type="number" step="any" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required />
-                      <input name="lng" value={mainForm.lng} onChange={handleMainChange} placeholder="Longitude" type="number" step="any" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required />
-                      <input name="imageUrl" value={mainForm.imageUrl} onChange={handleMainChange} placeholder="Image URL" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="distance" value={mainForm.distance} onChange={handleMainChange} placeholder="Distance (km)" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="highlights" value={mainForm.highlights} onChange={handleMainChange} placeholder="Highlights (comma-separated)" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <textarea name="description" value={mainForm.description} onChange={handleMainChange} placeholder="Description" className="col-span-2 min-h-[80px] rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100"></textarea>
-                      <textarea name="history" value={mainForm.history} onChange={handleMainChange} placeholder="History" className="col-span-2 min-h-[80px] rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100"></textarea>
-
-                      <label className="col-span-2 flex items-center gap-3 text-slate-200">
-                        <input type="checkbox" name="isPopular" checked={mainForm.isPopular} onChange={handleMainChange} className="h-4 w-4 text-lime-400" />
-                        Popular
-                      </label>
-
-                      <div className="col-span-2 flex gap-2">
-                        <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-lime-500 px-4 py-2 font-semibold text-slate-950 hover:bg-lime-400">
-                          <Save size={16} /> Save Main Place
-                        </button>
-                        <button type="button" onClick={() => {setMainForm(initialMainPlaceState); setEditMainId(null); setMessage('');}} className="inline-flex items-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-slate-300 hover:border-lime-500">
-                          <X size={16} /> Clear
-                        </button>
+                  <section className="flex flex-col gap-6">
+                    {/* Main Layout: Table on left/top, Form on right/bottom */}
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      {/* Table Section */}
+                      <div className="flex-1 lg:max-h-[calc(100vh-300px)] overflow-y-auto">
+                        <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-sm shadow-xl">
+                          <h3 className="mb-4 text-lg font-bold text-lime-300">📋 Existing Main Places</h3>
+                          {mainPlaces.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400">
+                              <p>No main places found in the database.</p>
+                              <p className="text-xs mt-2">Click the form below to add your first main place.</p>
+                            </div>
+                          ) : (
+                            <table className="w-full border-collapse text-left">
+                              <thead>
+                                <tr className="text-xs uppercase text-slate-400 bg-slate-800/50 sticky top-0 z-10">
+                                  <th className="px-3 py-2 rounded-tl-lg">Name</th>
+                                  <th className="px-3 py-2">Category</th>
+                                  <th className="px-3 py-2">District</th>
+                                  <th className="px-3 py-2 rounded-tr-lg">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {mainPlaces.map((place) => (
+                                  <tr key={place.mainPlaceId || place._id} className="border-b border-slate-700/50 hover:bg-slate-800/70 transition-colors">
+                                    <td className="px-3 py-2 font-medium text-white">{place.name}</td>
+                                    <td className="px-3 py-2 text-slate-300">{place.category}</td>
+                                    <td className="px-3 py-2 text-slate-300">{place.district}</td>
+                                    <td className="flex flex-wrap gap-2 px-3 py-2">
+                                      <button title="Edit" onClick={() => handleEditMain(place)} className="rounded-md bg-blue-600/80 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors border border-blue-500/50 flex items-center gap-1.5"><Edit3 size={14} /> Edit</button>
+                                      <button title="Delete" onClick={() => handleDeleteMain(place.mainPlaceId || place._id)} className="rounded-md bg-red-600/80 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-500 transition-colors border border-red-500/50 flex items-center gap-1.5"><Trash2 size={14} /></button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
                       </div>
-                    </form>
 
-                    <div className="mt-6 overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/80 p-2 text-sm">
-                      <h4 className="mb-2 font-semibold text-lime-200">Main Places List</h4>
-                      <table className="w-full border-collapse text-left">
-                        <thead>
-                          <tr className="text-xs uppercase text-slate-400">
-                            <th className="px-2 py-1">Name</th>
-                            <th className="px-2 py-1">Category</th>
-                            <th className="px-2 py-1">District</th>
-                            <th className="px-2 py-1">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {mainPlaces.map((place) => (
-                            <tr key={place.mainPlaceId || place._id} className="border-y border-slate-700 hover:bg-slate-800/70">
-                              <td className="px-2 py-1">{place.name}</td>
-                              <td className="px-2 py-1">{place.category}</td>
-                              <td className="px-2 py-1">{place.district}</td>
-                              <td className="flex flex-wrap gap-2 px-2 py-1">
-                                <button title="Edit" onClick={() => handleEditMain(place)} className="rounded-md bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500"><Edit3 size={14} /> </button>
-                                <button title="Delete" onClick={() => handleDeleteMain(place.mainPlaceId || place._id)} className="rounded-md bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-500"><Trash2 size={14} /> </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      {/* Form Section */}
+                      <div ref={mainFormRef} className="flex-1 rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto">
+                        <h3 className="mb-4 text-lg font-bold text-lime-300 flex items-center gap-2">
+                          {editMainId ? '✏️ Edit Main Place' : '➕ Add New Main Place'}
+                          {editMainId && <span className="text-xs bg-blue-600/50 px-2 py-1 rounded text-blue-200">Editing</span>}
+                        </h3>
+                        <form onSubmit={handleMainSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <input name="mainPlaceId" value={mainForm.mainPlaceId} onChange={handleMainChange} placeholder="Main Place ID (e.g. nanded-fort)" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 placeholder-slate-400 focus:border-lime-400 focus:outline-none transition" required />
+                          <input name="name" value={mainForm.name} onChange={handleMainChange} placeholder="Name" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" required />
+                          <input name="shortDescription" value={mainForm.shortDescription} onChange={handleMainChange} placeholder="Short Description" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <select name="category" value={mainForm.category} onChange={handleMainChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition">
+                            {categoriesMain.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <input name="district" value={mainForm.district} onChange={handleMainChange} placeholder="District" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="state" value={mainForm.state} onChange={handleMainChange} placeholder="State" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="timings" value={mainForm.timings} onChange={handleMainChange} placeholder="Timings" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="entryFee" value={mainForm.entryFee} onChange={handleMainChange} placeholder="Entry Fee" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="lat" value={mainForm.lat} onChange={handleMainChange} placeholder="Latitude" type="number" step="any" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" required />
+                          <input name="lng" value={mainForm.lng} onChange={handleMainChange} placeholder="Longitude" type="number" step="any" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" required />
+                          <input name="imageUrl" value={mainForm.imageUrl} onChange={handleMainChange} placeholder="Image URL" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="distance" value={mainForm.distance} onChange={handleMainChange} placeholder="Distance (km)" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="visitDuration" value={mainForm.visitDuration} onChange={handleMainChange} placeholder="Estimated Visit Duration (minutes)" type="number" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="highlights" value={mainForm.highlights} onChange={handleMainChange} placeholder="Highlights (comma-separated)" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="images" value={mainForm.images} onChange={handleMainChange} placeholder="Additional Images (comma-separated URLs)" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <textarea name="description" value={mainForm.description} onChange={handleMainChange} placeholder="Description" className="col-span-2 min-h-[80px] rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition resize-none"></textarea>
+                          <textarea name="history" value={mainForm.history} onChange={handleMainChange} placeholder="History" className="col-span-2 min-h-[80px] rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition resize-none"></textarea>
+
+                          <label className="col-span-2 flex items-center gap-3 text-slate-200 cursor-pointer hover:text-lime-300 transition">
+                            <input type="checkbox" name="isPopular" checked={mainForm.isPopular} onChange={handleMainChange} className="h-4 w-4 text-lime-400 cursor-pointer" />
+                            Mark as Popular
+                          </label>
+
+                          <div className="col-span-2 flex gap-2 mt-4">
+                            <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-lime-500 px-6 py-3 font-black text-slate-950 hover:bg-lime-400 transition transform hover:scale-105 shadow-xl shadow-lime-500/20">
+                              <Save size={18} /> {editMainId ? 'Update Place' : 'Save New Place'}
+                            </button>
+                            <button type="button" onClick={() => {setMainForm(initialMainPlaceState); setEditMainId(null); setMessage('');}} className="inline-flex items-center gap-2 rounded-xl border border-slate-600 px-6 py-3 font-bold text-slate-300 hover:border-lime-500 hover:text-lime-300 transition">
+                              <X size={18} /> Clear
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
                   </section>
                 ) : (
-                  <section>
-                    <h3 className="mb-3 text-xl font-bold text-lime-300">Add / Edit Sub-place (Monument)</h3>
-                    <form onSubmit={handleSubSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <input name="monumentId" value={subForm.monumentId} onChange={handleSubChange} placeholder="Monument ID" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required />
-                      <input name="name" value={subForm.name} onChange={handleSubChange} placeholder="Name" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required />
-                      <select name="parentPlaceId" value={subForm.parentPlaceId} onChange={handleSubChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required>
-                        <option value="">-- Select Main Place --</option>
-                        {mainPlaces.map((main) => (
-                          <option key={main.mainPlaceId || main._id} value={main.mainPlaceId || main._id}>
-                            {main.name}
-                          </option>
-                        ))}
-                      </select>
-                      <select name="category" value={subForm.category} onChange={handleSubChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100">
-                        {categoriesSub.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-
-                      <select name="markerType" value={subForm.markerType} onChange={handleSubChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required>
-                        {markerOptions.map((marker) => (
-                          <option key={marker.value} value={marker.value}>{marker.label}</option>
-                        ))}
-                      </select>
-
-                      <input name="shortDescription" value={subForm.shortDescription} onChange={handleSubChange} placeholder="Short Description" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="timings" value={subForm.timings} onChange={handleSubChange} placeholder="Timings" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="entryFee" value={subForm.entryFee} onChange={handleSubChange} placeholder="Entry Fee" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="lat" value={subForm.lat} onChange={handleSubChange} placeholder="Latitude" type="number" step="any" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required />
-                      <input name="lng" value={subForm.lng} onChange={handleSubChange} placeholder="Longitude" type="number" step="any" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" required />
-                      <input name="audioUrl" value={subForm.audioUrl} onChange={handleSubChange} placeholder="Audio URL" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="imageUrl" value={subForm.imageUrl} onChange={handleSubChange} placeholder="Image URL" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="caveNumber" value={subForm.caveNumber} onChange={handleSubChange} placeholder="Cave Number" type="number" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <input name="highlights" value={subForm.highlights} onChange={handleSubChange} placeholder="Highlights (comma-separated)" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100" />
-                      <textarea name="description" value={subForm.description} onChange={handleSubChange} placeholder="Description" className="col-span-2 min-h-[80px] rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100"></textarea>
-                      <textarea name="history" value={subForm.history} onChange={handleSubChange} placeholder="History" className="col-span-2 min-h-[80px] rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100"></textarea>
-
-                      <label className="col-span-2 flex items-center gap-3 text-slate-200">
-                        <input type="checkbox" name="isPopular" checked={subForm.isPopular} onChange={handleSubChange} className="h-4 w-4 text-lime-400" />
-                        Popular
-                      </label>
-
-                      <div className="col-span-2 flex gap-2">
-                        <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-lime-500 px-4 py-2 font-semibold text-slate-950 hover:bg-lime-400">
-                          <Save size={16} /> Save Sub-place
-                        </button>
-                        <button type="button" onClick={() => {setSubForm(initialSubPlaceState); setEditSubId(null); setMessage(''); setSelectedMainPlace(''); setSubplacesForSelected([]);}} className="inline-flex items-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-slate-300 hover:border-lime-500">
-                          <X size={16} /> Clear
-                        </button>
-                      </div>
-                    </form>
-
-                    {selectedMainPlace && (
-                      <div className="mt-6 overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-sm">
-                        <h4 className="mb-2 font-semibold text-lime-200">
-                          Existing Sub-places for {mainPlaces.find(m => (m._id || m.mainPlaceId) === selectedMainPlace)?.name || 'Selected Main Place'}
-                        </h4>
-                        {subplacesForSelected.length > 0 ? (
-                          <table className="w-full border-collapse text-left">
-                            <thead>
-                              <tr className="text-xs uppercase text-slate-400">
-                                <th className="px-2 py-1">Name</th>
-                                <th className="px-2 py-1">Category</th>
-                                <th className="px-2 py-1">Marker</th>
-                                <th className="px-2 py-1">Cave #</th>
-                                <th className="px-2 py-1">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {subplacesForSelected.map((sub) => (
-                                <tr key={sub._id || sub.monumentId} className="border-y border-slate-700 hover:bg-slate-800/70">
-                                  <td className="px-2 py-1">{sub.name}</td>
-                                  <td className="px-2 py-1">{sub.category}</td>
-                                  <td className="px-2 py-1">{sub.markerType || 'religious'}</td>
-                                  <td className="px-2 py-1">{sub.caveNumber || 'N/A'}</td>
-                                  <td className="flex flex-wrap gap-2 px-2 py-1">
-                                    <button title="Edit" onClick={() => handleEditSub(sub)} className="rounded-md bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500"><Edit3 size={14} /></button>
-                                    <button title="Delete" onClick={() => handleDeleteSub(sub._id || sub.monumentId)} className="rounded-md bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-500"><Trash2 size={14} /></button>
-                                  </td>
+                  <section className="flex flex-col gap-6">
+                    {/* Sub-places Layout */}
+                    <div className="flex flex-col lg:flex-row gap-6">
+                      {/* Table Section */}
+                      <div className="flex-1 lg:max-h-[calc(100vh-300px)] overflow-y-auto">
+                        <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-sm shadow-xl">
+                          <h3 className="mb-4 text-lg font-bold text-lime-300">📋 All Existing Sub-places</h3>
+                          {subPlaces.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400">
+                              <p>No sub-places found in the database.</p>
+                              <p className="text-xs mt-2">Create a main place first, then add sub-places.</p>
+                            </div>
+                          ) : (
+                            <table className="w-full border-collapse text-left">
+                              <thead>
+                                <tr className="text-xs uppercase text-slate-400 bg-slate-800/50 sticky top-0 z-10">
+                                  <th className="px-3 py-2 rounded-tl-lg">Name</th>
+                                  <th className="px-3 py-2">Main Place</th>
+                                  <th className="px-3 py-2">Category</th>
+                                  <th className="px-3 py-2 rounded-tr-lg">Actions</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : (
-                          <p className="text-slate-400">No sub-places found for this main place. Add the first one above!</p>
+                              </thead>
+                              <tbody>
+                                {subPlaces.map((sub) => {
+                                  const parent = mainPlaces.find((m) => m._id === sub.parentPlaceId || m.mainPlaceId === sub.parentPlaceId);
+                                  return (
+                                    <tr key={sub._id || sub.monumentId} className="border-b border-slate-700/50 hover:bg-slate-800/70 transition-colors">
+                                      <td className="px-3 py-2 font-medium text-white">{sub.name}</td>
+                                      <td className="px-3 py-2 text-slate-300">{parent?.name || 'Unknown'}</td>
+                                      <td className="px-3 py-2 text-slate-300">{sub.category}</td>
+                                      <td className="flex flex-wrap gap-2 px-3 py-2">
+                                        <button title="Edit" onClick={() => handleEditSub(sub)} className="rounded-md bg-blue-600/80 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors border border-blue-500/50 flex items-center gap-1.5"><Edit3 size={14} /> Edit</button>
+                                        <button title="Delete" onClick={() => handleDeleteSub(sub._id || sub.monumentId)} className="rounded-md bg-red-600/80 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-500 transition-colors border border-red-500/50 flex items-center gap-1.5"><Trash2 size={14} /></button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+
+                        {selectedMainPlace && (
+                          <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-sm mt-4 shadow-xl">
+                            <h4 className="mb-2 font-semibold text-lime-200">
+                              📍 Sub-places for: <span className="text-lime-300">{mainPlaces.find(m => (m._id || m.mainPlaceId) === selectedMainPlace)?.name || 'Selected Place'}</span>
+                            </h4>
+                            {subplacesForSelected.length === 0 ? (
+                              <p className="text-slate-400 py-4">No sub-places for this main place. Add one using the form →</p>
+                            ) : (
+                              <table className="w-full border-collapse text-left">
+                                <thead>
+                                  <tr className="text-xs uppercase text-slate-400 bg-slate-800/50 sticky top-0 z-10">
+                                    <th className="px-3 py-2">Name</th>
+                                    <th className="px-3 py-2">Category</th>
+                                    <th className="px-3 py-2">Marker</th>
+                                    <th className="px-3 py-2">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {subplacesForSelected.map((sub) => (
+                                    <tr key={sub._id || sub.monumentId} className="border-b border-slate-700/50 hover:bg-slate-800/70">
+                                      <td className="px-3 py-2 text-white">{sub.name}</td>
+                                      <td className="px-3 py-2 text-slate-300">{sub.category}</td>
+                                      <td className="px-3 py-2 text-slate-300">{sub.markerType || 'religious'}</td>
+                                      <td className="flex flex-wrap gap-2 px-3 py-2">
+                                        <button title="Edit" onClick={() => handleEditSub(sub)} className="rounded-md bg-blue-600/80 px-2 py-1 text-xs text-white hover:bg-blue-500 flex items-center gap-1"><Edit3 size={14} /></button>
+                                        <button title="Delete" onClick={() => handleDeleteSub(sub._id || sub.monumentId)} className="rounded-md bg-red-600/80 px-2 py-1 text-xs text-white hover:bg-red-500 flex items-center gap-1"><Trash2 size={14} /></button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
 
-                    <div className="mt-6 overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/80 p-2 text-sm">
-                      <h4 className="mb-2 font-semibold text-lime-200">Sub-places List</h4>
-                      <table className="w-full border-collapse text-left">
-                        <thead>
-                          <tr className="text-xs uppercase text-slate-400">
-                            <th className="px-2 py-1">Name</th>
-                            <th className="px-2 py-1">Main Place</th>
-                            <th className="px-2 py-1">Category</th>
-                            <th className="px-2 py-1">Marker</th>
-                            <th className="px-2 py-1">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {subPlaces.map((sub) => {
-                            const parent = mainPlaces.find((m) => m._id === sub.parentPlaceId || m.mainPlaceId === sub.parentPlaceId);
-                            return (
-                              <tr key={sub._id || sub.monumentId} className="border-y border-slate-700 hover:bg-slate-800/70">
-                                <td className="px-2 py-1">{sub.name}</td>
-                                <td className="px-2 py-1">{parent?.name || 'Unknown'}</td>
-                                <td className="px-2 py-1">{sub.category}</td>
-                                <td className="px-2 py-1">{sub.markerType || 'religious'}</td>
-                                <td className="flex flex-wrap gap-2 px-2 py-1">
-                                  <button title="Edit" onClick={() => handleEditSub(sub)} className="rounded-md bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-500"><Edit3 size={14} /></button>
-                                  <button title="Delete" onClick={() => handleDeleteSub(sub._id || sub.monumentId)} className="rounded-md bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-500"><Trash2 size={14} /></button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                      {/* Form Section */}
+                      <div ref={subFormRef} className="flex-1 rounded-xl border border-slate-700/50 bg-slate-800/30 p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-100px)] lg:overflow-y-auto">
+                        <h3 className="mb-4 text-lg font-bold text-lime-300 flex items-center gap-2">
+                          {editSubId ? '✏️ Edit Sub-place' : '➕ Add New Sub-place'}
+                          {editSubId && <span className="text-xs bg-blue-600/50 px-2 py-1 rounded text-blue-200">Editing</span>}
+                        </h3>
+                        <form onSubmit={handleSubSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <input name="monumentId" value={subForm.monumentId} onChange={handleSubChange} placeholder="Monument ID" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" required />
+                          <input name="name" value={subForm.name} onChange={handleSubChange} placeholder="Name" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" required />
+                          
+                          <select name="parentPlaceId" value={subForm.parentPlaceId} onChange={handleSubChange} className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition font-semibold" required>
+                            <option value="">-- Select Main Place (REQUIRED) --</option>
+                            {mainPlaces.map((main) => (
+                              <option key={main.mainPlaceId || main._id} value={main.mainPlaceId || main._id}>
+                                {main.name}
+                              </option>
+                            ))}
+                          </select>
+
+                          <select name="category" value={subForm.category} onChange={handleSubChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition">
+                            {categoriesSub.map((c) => <option key={c} value={c}>{c}</option>)}
+                          </select>
+
+                          <select name="markerType" value={subForm.markerType} onChange={handleSubChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" required>
+                            {markerOptions.map((marker) => (
+                              <option key={marker.value} value={marker.value}>{marker.label}</option>
+                            ))}
+                          </select>
+
+                          <input name="shortDescription" value={subForm.shortDescription} onChange={handleSubChange} placeholder="Short Description" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="timings" value={subForm.timings} onChange={handleSubChange} placeholder="Timings" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="entryFee" value={subForm.entryFee} onChange={handleSubChange} placeholder="Entry Fee" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="lat" value={subForm.lat} onChange={handleSubChange} placeholder="Latitude" type="number" step="any" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" required />
+                          <input name="lng" value={subForm.lng} onChange={handleSubChange} placeholder="Longitude" type="number" step="any" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" required />
+                          <input name="audioUrl" value={subForm.audioUrl} onChange={handleSubChange} placeholder="Audio URL" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="imageUrl" value={subForm.imageUrl} onChange={handleSubChange} placeholder="Image URL" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="caveNumber" value={subForm.caveNumber} onChange={handleSubChange} placeholder="Cave Number (if applicable)" type="number" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <select name="crowdLevel" value={subForm.crowdLevel} onChange={handleSubChange} className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition">
+                            <option value="low">🟢 Low Crowd</option>
+                            <option value="medium">🟡 Medium Crowd</option>
+                            <option value="high">🔴 High Crowd</option>
+                          </select>
+                          <input name="highlights" value={subForm.highlights} onChange={handleSubChange} placeholder="Highlights (comma-separated)" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="images" value={subForm.images} onChange={handleSubChange} placeholder="Additional Images (comma-separated URLs)" className="col-span-2 rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <input name="visitDuration" value={subForm.visitDuration} onChange={handleSubChange} placeholder="Visit Duration (minutes)" type="number" className="rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition" />
+                          <textarea name="description" value={subForm.description} onChange={handleSubChange} placeholder="Description" className="col-span-2 min-h-[80px] rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition resize-none"></textarea>
+                          <textarea name="history" value={subForm.history} onChange={handleSubChange} placeholder="History" className="col-span-2 min-h-[80px] rounded-xl border border-slate-600 bg-slate-800/60 p-2 text-slate-100 focus:border-lime-400 focus:outline-none transition resize-none"></textarea>
+
+                          <label className="col-span-2 flex items-center gap-3 text-slate-200 cursor-pointer hover:text-lime-300 transition">
+                            <input type="checkbox" name="isPopular" checked={subForm.isPopular} onChange={handleSubChange} className="h-4 w-4 text-lime-400 cursor-pointer" />
+                            Mark as Popular
+                          </label>
+
+                          <div className="col-span-2 flex gap-2 mt-4">
+                            <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-lime-500 px-6 py-3 font-black text-slate-950 hover:bg-lime-400 transition transform hover:scale-105 shadow-xl shadow-lime-500/20">
+                              <Save size={18} /> {editSubId ? 'Update Sub-place' : 'Save New Sub-place'}
+                            </button>
+                            <button type="button" onClick={() => {setSubForm(initialSubPlaceState); setEditSubId(null); setMessage(''); setSelectedMainPlace(''); setSubplacesForSelected([]);}} className="inline-flex items-center gap-2 rounded-xl border border-slate-600 px-6 py-3 font-bold text-slate-300 hover:border-lime-500 hover:text-lime-300 transition">
+                              <X size={18} /> Clear
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
                   </section>
                 )}

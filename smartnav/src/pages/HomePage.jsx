@@ -177,10 +177,10 @@ const HomePage = ({ onSelectPlace, onNavigateToLiveMap, currentDistrict, setCurr
                 {/* Large Image */}
                 <div className="h-52 overflow-hidden relative">
                   <img
-                    src={place.imageUrl || `https://via.placeholder.com/800x400?text=${encodeURIComponent(place.name)}`}
+                    src={place.imageUrl || `https://placehold.co/800x400/060b18/e2e8f0?text=${encodeURIComponent(place.name)}`}
                     alt={place.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => { e.target.src = "https://via.placeholder.com/800x400?text=No+Image"; }}
+                    onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/800x400/060b18/e2e8f0?text=No+Image"; }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#060b18] via-transparent to-transparent" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

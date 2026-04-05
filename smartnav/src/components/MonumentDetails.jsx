@@ -170,10 +170,10 @@ const MonumentDetail = ({ id, onBack, onNavigate, onStartNavigation }) => {
       {/* Image Slider */}
       <div className="relative h-80">
         <Swiper spaceBetween={10} slidesPerView={1}>
-          {(monument.images?.length > 0 ? monument.images : monument.imageUrl ? [monument.imageUrl] : ["https://via.placeholder.com/800x400?text=No+Image"])
+          {(monument.images?.length > 0 ? monument.images : monument.imageUrl ? [monument.imageUrl] : ["https://placehold.co/800x400/060b18/e2e8f0?text=No+Image"])
             .map((img, i) => (
               <SwiperSlide key={i}>
-                <img src={img} className="w-full h-80 object-cover" alt="" onError={(e) => { e.target.src = "https://via.placeholder.com/800x400?text=Image+Error"; }} />
+                <img src={img} className="w-full h-80 object-cover" alt="" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/800x400/060b18/e2e8f0?text=Image+Error"; }} />
               </SwiperSlide>
             ))}
         </Swiper>

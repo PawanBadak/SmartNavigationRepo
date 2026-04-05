@@ -72,10 +72,10 @@ const Dashboard = ({ selectedMainPlace, onSelectMonument, onSwitchTab, language 
       {/* Hero Banner */}
       <div className="relative h-72 overflow-hidden">
         <img
-          src={selectedMainPlace.imageUrl || "https://via.placeholder.com/1200x500?text=Loading"}
+          src={selectedMainPlace.imageUrl || "https://placehold.co/1200x500/060b18/e2e8f0?text=Loading"}
           alt={selectedMainPlace.name}
           className="w-full h-full object-cover"
-          onError={(e) => { e.target.src = "https://via.placeholder.com/1200x500?text=No+Image"; }}
+          onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/1200x500/060b18/e2e8f0?text=No+Image"; }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#060b18] via-[#060b18]/50 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#060b18]/60 to-transparent" />

@@ -24,7 +24,7 @@ const monumentSchema = new mongoose.Schema({
   audioUrl: String,
   imageUrl: String,
   images: [String],
-  category: { type: String, enum: ['Cave', 'Temple', 'Utility', 'Entry', 'Restaurant', 'Viewpoint'] },
+  category: { type: String, enum: ['Cave', 'Temple', 'Utility', 'Entry', 'Restaurant', 'Viewpoint', 'Museum', 'Park'] },
   markerType: {
     type: String,
     enum: ['religious', 'food', 'nature', 'history', 'stay', 'entry', 'washroom', 'water', 'parking', 'current', 'highlight']
